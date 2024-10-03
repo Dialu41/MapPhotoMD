@@ -6,12 +6,14 @@ import (
 	"log"
 	"net/url"
 	"os"
+	"time"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/widget"
+	xWidget "fyne.io/x/fyne/widget"
 )
 
 // userData 从配置文件中读取到的数据
@@ -27,11 +29,13 @@ func main() {
 	ap := app.NewWithID("MapPhotoMD")
 	win := ap.NewWindow("MapPhotoMD")
 
-	win.SetMainMenu(makeMenu(ap, win))
+	readUserData(ap, true) //读取配置文件
+
 	win.SetMaster()
 	win.Resize(fyne.NewSize(640, 460))
-
-	readUserData(ap, true)
+	win.SetMainMenu(makeMenu(ap, win)) //设置菜单栏
+	win.SetContent(makeTabs())         //设置各选项卡的内容
+	win.CenterOnScreen()               //主窗口居中显示
 
 	win.ShowAndRun()
 }
@@ -103,7 +107,6 @@ func readUserData(ap fyne.App, isWinStart bool) {
 
 // showSettings 显示设置
 func showSettings(ap fyne.App, win fyne.Window) {
-	//Key文本框
 	gdKeyEntry := widget.NewPasswordEntry()
 	readUserData(ap, false)
 	Key, ok := userData["Key"]
@@ -182,6 +185,50 @@ func showAbout(ap fyne.App, win fyne.Window) {
 			})),
 	)
 	dialog.ShowCustom("关于", "关闭", content, win)
+}
+
+// makeTabs 创建主窗口的选项卡
+func makeTabs() *container.AppTabs {
+	var tabs *container.AppTabs
+	var (
+		travelTab     *container.TabItem
+		IOputTab      *container.TabItem
+		propertiesTab *container.TabItem
+	)
+
+	/********设置旅行信息选项卡*********/
+	travelName := widget.NewEntry()
+	travelName.SetPlaceHolder("例：故宫一日游")
+	travelDate := widget.NewEntry()
+	travelDate.SetPlaceHolder("点击日历，选择旅行开始的第一天")
+	datePicker := xWidget.NewCalendar(time.Now(), func(t time.Time) {
+		travelDate.SetText(t.Format("2006-01-02"))
+	})
+	travelTabContent := &widget.Form{
+		Items: []*widget.FormItem{
+			{Text: "旅行名称", Widget: travelName},
+			{Text: "旅行日期", Widget: travelDate},
+			{Text: "", Widget: datePicker},
+		},
+		OnSubmit: func() {
+			tabs.Select(IOputTab)
+		},
+		SubmitText: "下一步",
+	}
+
+	IOputTabContent := &widget.Form{}
+	propertiesTabContent := &widget.Form{}
+
+	travelTab = container.NewTabItem("旅行信息", travelTabContent)
+	IOputTab = container.NewTabItem("导入导出设置", IOputTabContent)
+	propertiesTab = container.NewTabItem("添加属性", propertiesTabContent)
+	tabs = container.NewAppTabs(
+		travelTab,
+		IOputTab,
+		propertiesTab,
+	)
+	tabs.SetTabLocation(container.TabLocationLeading)
+	return tabs
 }
 
 func debugPrintf(str string) {
