@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"net/url"
@@ -16,8 +17,15 @@ import (
 	xWidget "fyne.io/x/fyne/widget"
 )
 
-// config 从配置文件中读取到的数据
-var config map[string]interface{}
+// UserConfig 用户配置数据
+type UserConfig struct {
+	Key         string `json:"key"`          //高德key
+	MovePhoto   bool   `json:"move_photo"`   //是否转存照片
+	PhotoPath   string `json:"photo_path"`   //转存路径
+	DeletePhoto bool   `json:"delete_Photo"` //是否删除原照片
+}
+
+var config UserConfig
 
 // appVersion 软件版本号
 const appVersion = "v1.0"
@@ -29,8 +37,7 @@ func main() {
 	ap := app.NewWithID("MapPhotoMD")
 	win := ap.NewWindow("MapPhotoMD")
 
-	config = make(map[string]interface{})
-	readConfig(ap) //读取配置文件
+	readConfigFile(ap) //读取配置文件
 
 	win.SetMaster()
 	win.Resize(fyne.NewSize(640, 460))
@@ -64,8 +71,8 @@ func makeMenu(ap fyne.App, win fyne.Window) *fyne.MainMenu {
 	return mainMenu
 }
 
-// readConfig 用于读取配置文件，如成功则将数据保存到全局变量，否则发送错误提醒
-func readConfig(ap fyne.App) {
+// readConfigFile 用于读取配置文件，如成功则将数据保存到cfg，否则发送错误提醒
+func readConfigFile(ap fyne.App) {
 	//打开配置文件
 	file, err := os.Open("config.json")
 	if err != nil {
@@ -106,13 +113,13 @@ func readConfig(ap fyne.App) {
 
 // showSettings 显示设置
 func showSettings(ap fyne.App, win fyne.Window) {
+	fmt.Printf("%+v\n", config)
 	var photoPathEntry *widget.Entry
+	fmt.Printf("%+v\n", config)
 	gdKeyEntry := widget.NewPasswordEntry()
-	keyValue, ok := config["Key"]
-	if !ok {
-		keyValue = ""
-	}
-	gdKeyEntry.SetText(keyValue.(string))
+	fmt.Printf("%+v\n", config)
+	gdKeyEntry.SetText(config.Key)
+	fmt.Printf("%+v\n", config)
 
 	photoPathEntry = widget.NewEntry()
 	photoPathEntry.Disable()
@@ -126,20 +133,16 @@ func showSettings(ap fyne.App, win fyne.Window) {
 	movePhotoRadio := widget.NewRadioGroup([]string{"是", "否"}, func(s string) {
 		if s == "是" {
 			photoPathEntry.Enable()
-			config["isMovePhoto"] = "yes"
+			config.MovePhoto = true
 		} else {
 			photoPathEntry.Disable()
-			config["isMovePhoto"] = "no"
+			config.MovePhoto = false
 		}
 	})
-	moveRadioValue, ok := config["isMovePhoto"]
-	if !ok {
-		movePhotoRadio.SetSelected("否")
-	}
-	switch moveRadioValue {
-	case "yes":
+	switch config.MovePhoto {
+	case true:
 		movePhotoRadio.SetSelected("是")
-	case "no":
+	case false:
 		movePhotoRadio.SetSelected("否")
 	}
 
@@ -155,7 +158,7 @@ func showSettings(ap fyne.App, win fyne.Window) {
 			return
 		}
 		//用户选择保存，则保存输入的Key
-		config["Key"] = gdKeyEntry.Text
+		config.Key = gdKeyEntry.Text
 		jsonData, err := json.Marshal(config)
 		if err != nil {
 			ap.SendNotification(&fyne.Notification{
