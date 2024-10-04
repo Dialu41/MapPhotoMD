@@ -188,10 +188,20 @@ func showSettings(ap fyne.App, win fyne.Window) {
 		movePhotoRadio.SetSelected("否")
 	}
 
+	//是否删除原照片
+	deletePhotoRadio := widget.NewRadioGroup([]string{"是", "否"}, func(s string) {})
+	switch config.DeletePhoto {
+	case true:
+		deletePhotoRadio.SetSelected("是")
+	case false:
+		deletePhotoRadio.SetSelected("否")
+	}
+
 	items := []*widget.FormItem{
 		widget.NewFormItem("高德Key", gdKeyEntry),
 		widget.NewFormItem("是否转存照片", movePhotoRadio),
 		widget.NewFormItem("照片转存路径", photoPath),
+		widget.NewFormItem("是否删除原照片", deletePhotoRadio),
 	}
 
 	settingDialog := dialog.NewForm("设置", "保存", "取消", items, func(b bool) {
@@ -208,6 +218,13 @@ func showSettings(ap fyne.App, win fyne.Window) {
 		case "否":
 			config.MovePhoto = false
 		}
+		switch deletePhotoRadio.Selected {
+		case "是":
+			config.DeletePhoto = true
+		case "否":
+			config.DeletePhoto = false
+		}
+
 		jsonData, err := json.Marshal(config)
 		if err != nil {
 			ap.SendNotification(&fyne.Notification{
