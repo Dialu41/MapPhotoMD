@@ -16,8 +16,8 @@ import (
 	xWidget "fyne.io/x/fyne/widget"
 )
 
-// userData 从配置文件中读取到的数据
-var userData map[string]interface{}
+// config 从配置文件中读取到的数据
+var config map[string]interface{}
 
 // appVersion 软件版本号
 const appVersion = "v1.0"
@@ -29,7 +29,8 @@ func main() {
 	ap := app.NewWithID("MapPhotoMD")
 	win := ap.NewWindow("MapPhotoMD")
 
-	readUserData(ap, true) //读取配置文件
+	config = make(map[string]interface{})
+	readConfig(ap) //读取配置文件
 
 	win.SetMaster()
 	win.Resize(fyne.NewSize(640, 460))
@@ -63,18 +64,16 @@ func makeMenu(ap fyne.App, win fyne.Window) *fyne.MainMenu {
 	return mainMenu
 }
 
-// readUserData 用于读取配置文件，如成功则将数据保存到全局变量，否则发送错误提醒
-func readUserData(ap fyne.App, isWinStart bool) {
+// readConfig 用于读取配置文件，如成功则将数据保存到全局变量，否则发送错误提醒
+func readConfig(ap fyne.App) {
 	//打开配置文件
-	file, err := os.Open("userData.json")
+	file, err := os.Open("config.json")
 	if err != nil {
 		if os.IsNotExist(err) {
-			if isWinStart {
-				ap.SendNotification(&fyne.Notification{
-					Title:   "提示",
-					Content: "未找到配置文件，请先在设置中填写Key并保存",
-				})
-			}
+			ap.SendNotification(&fyne.Notification{
+				Title:   "提示",
+				Content: "未找到配置文件，请先在设置中完成相关设置并保存",
+			})
 			return
 		} else {
 			ap.SendNotification(&fyne.Notification{
@@ -95,7 +94,7 @@ func readUserData(ap fyne.App, isWinStart bool) {
 		return
 	}
 	//解析为JSON
-	err = json.Unmarshal(data, &userData)
+	err = json.Unmarshal(data, &config)
 	if err != nil {
 		ap.SendNotification(&fyne.Notification{
 			Title:   "错误",
@@ -107,15 +106,47 @@ func readUserData(ap fyne.App, isWinStart bool) {
 
 // showSettings 显示设置
 func showSettings(ap fyne.App, win fyne.Window) {
+	var photoPathEntry *widget.Entry
 	gdKeyEntry := widget.NewPasswordEntry()
-	readUserData(ap, false)
-	Key, ok := userData["Key"]
-	if ok {
-		gdKeyEntry.SetText(Key.(string))
+	keyValue, ok := config["Key"]
+	if !ok {
+		keyValue = ""
+	}
+	gdKeyEntry.SetText(keyValue.(string))
+
+	photoPathEntry = widget.NewEntry()
+	photoPathEntry.Disable()
+	photoPathEntry.SetPlaceHolder("默认为 旅行名称/pictures")
+	photoPathEntry.Resize(fyne.NewSize(100, photoPathEntry.MinSize().Height))
+	photoPath := container.NewHBox(
+		photoPathEntry,
+	)
+	photoPath.Resize(fyne.NewSize(200, photoPath.MinSize().Height))
+
+	movePhotoRadio := widget.NewRadioGroup([]string{"是", "否"}, func(s string) {
+		if s == "是" {
+			photoPathEntry.Enable()
+			config["isMovePhoto"] = "yes"
+		} else {
+			photoPathEntry.Disable()
+			config["isMovePhoto"] = "no"
+		}
+	})
+	moveRadioValue, ok := config["isMovePhoto"]
+	if !ok {
+		movePhotoRadio.SetSelected("否")
+	}
+	switch moveRadioValue {
+	case "yes":
+		movePhotoRadio.SetSelected("是")
+	case "no":
+		movePhotoRadio.SetSelected("否")
 	}
 
 	items := []*widget.FormItem{
-		widget.NewFormItem("高德Key:", gdKeyEntry),
+		widget.NewFormItem("高德Key", gdKeyEntry),
+		widget.NewFormItem("是否转存照片", movePhotoRadio),
+		widget.NewFormItem("照片转存路径", photoPath),
 	}
 
 	settingDialog := dialog.NewForm("设置", "保存", "取消", items, func(b bool) {
@@ -124,8 +155,8 @@ func showSettings(ap fyne.App, win fyne.Window) {
 			return
 		}
 		//用户选择保存，则保存输入的Key
-		key := map[string]string{"Key": gdKeyEntry.Text}
-		jsonData, err := json.Marshal(key)
+		config["Key"] = gdKeyEntry.Text
+		jsonData, err := json.Marshal(config)
 		if err != nil {
 			ap.SendNotification(&fyne.Notification{
 				Title:   "错误",
@@ -133,7 +164,7 @@ func showSettings(ap fyne.App, win fyne.Window) {
 			})
 			return
 		}
-		err = os.WriteFile("userData.json", jsonData, 0644)
+		err = os.WriteFile("config.json", jsonData, 0644)
 		if err != nil {
 			ap.SendNotification(&fyne.Notification{
 				Title:   "错误",
@@ -216,7 +247,9 @@ func makeTabs() *container.AppTabs {
 		SubmitText: "下一步",
 	}
 
+	/*********设置导入导出选项卡********/
 	IOputTabContent := &widget.Form{}
+
 	propertiesTabContent := &widget.Form{}
 
 	travelTab = container.NewTabItem("旅行信息", travelTabContent)
