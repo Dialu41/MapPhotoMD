@@ -11,6 +11,7 @@ import (
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/dialog"
+	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/widget"
 	xWidget "fyne.io/x/fyne/widget"
 )
@@ -43,8 +44,8 @@ func main() {
 
 	readConfigFile(ap) //读取配置文件
 
+	win.Resize(fyne.NewSize(640, 440))
 	win.SetMaster()
-	win.Resize(fyne.NewSize(640, 460))
 	win.SetMainMenu(makeMenu(ap, win)) //设置菜单栏
 	win.SetContent(makeTabs(win))      //设置各选项卡的内容
 	win.CenterOnScreen()               //主窗口居中显示
@@ -304,17 +305,24 @@ func makeTabs(win fyne.Window) *container.AppTabs {
 	datePicker := xWidget.NewCalendar(time.Now(), func(t time.Time) {
 		travelDate.SetText(t.Format("2006-01-02"))
 	})
-	travelTabContent := &widget.Form{
-		Items: []*widget.FormItem{
-			{Text: "旅行名称", Widget: travelName},
-			{Text: "旅行日期", Widget: travelDate},
-			{Text: "", Widget: datePicker},
-		},
-		OnSubmit: func() {
-			tabs.Select(IOputTab)
-		},
-		SubmitText: "下一步",
-	}
+	travelNextButton := widget.NewButton("下一步", func() {
+		tabs.Select(IOputTab)
+	})
+	travelNextButton.Importance = widget.HighImportance
+	travelTabContent := container.NewVBox(
+		widget.NewForm(
+			widget.NewFormItem("旅行名称", travelName),
+			widget.NewFormItem("旅行日期", travelDate),
+			widget.NewFormItem("", datePicker)),
+		//保持按钮靠下
+		layout.NewSpacer(),
+		//保持按钮居中
+		container.NewHBox(
+			layout.NewSpacer(),
+			travelNextButton,
+			layout.NewSpacer(),
+		),
+	)
 
 	/*********设置导入导出选项卡********/
 	inputPhotoEntry := widget.NewEntry()
@@ -350,20 +358,27 @@ func makeTabs(win fyne.Window) *container.AppTabs {
 		}, win)
 	})
 	outputPath := container.New(&FileSelectLayout{}, outputPathEntry, outputPathButton)
-	IOputTabContent := &widget.Form{
-		Items: []*widget.FormItem{
-			{Text: "导入照片", Widget: inputPhoto},
-			{Text: "导出到Ob库", Widget: outputPath},
-		},
-		OnSubmit: func() {
-			tabs.Select(propertiesTab)
-		},
-		SubmitText: "下一步",
-		OnCancel: func() {
-			tabs.Select(travelTab)
-		},
-		CancelText: "上一步",
-	}
+	IOputNextButton := widget.NewButton("下一步", func() {
+		tabs.Select(propertiesTab)
+	})
+	IOputNextButton.Importance = widget.HighImportance
+	IOputBackButton := widget.NewButton("上一步", func() {
+		tabs.Select(travelTab)
+	})
+	IOputTabContent := container.NewVBox(
+		widget.NewForm(
+			widget.NewFormItem("导入照片", inputPhoto),
+			widget.NewFormItem("导出到Ob库", outputPath)),
+		//保持按钮靠下
+		layout.NewSpacer(),
+		//保持按钮居中
+		container.NewHBox(
+			layout.NewSpacer(),
+			IOputBackButton,
+			IOputNextButton,
+			layout.NewSpacer(),
+		),
+	)
 
 	propertiesTabContent := &widget.Form{}
 
