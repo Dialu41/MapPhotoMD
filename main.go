@@ -2,9 +2,7 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
-	"log"
 	"net/url"
 	"os"
 	"time"
@@ -33,6 +31,14 @@ const appVersion = "v1.0"
 // githubURL 项目github仓库链接
 const githubURL = ""
 
+// FileSelectLayout 文件选择器布局。包含一个输入框和一个按钮，横向排布
+// 按钮两侧紧贴文本，输入框填充容器剩余空间
+// 传入参数时，先输入框再按钮
+type FileSelectLayout struct{}
+
+// FolderSelectLayout 与FileSelectLayout类似，只是用于选择文件夹
+type FolderSelectLayout FileSelectLayout
+
 func main() {
 	ap := app.NewWithID("MapPhotoMD")
 	win := ap.NewWindow("MapPhotoMD")
@@ -46,6 +52,29 @@ func main() {
 	win.CenterOnScreen()               //主窗口居中显示
 
 	win.ShowAndRun()
+}
+
+func (lo *FileSelectLayout) MinSize(objects []fyne.CanvasObject) fyne.Size {
+	minSize := fyne.NewSize(0, 0)
+	for _, obj := range objects {
+		minSize = minSize.Max(obj.MinSize())
+	}
+	return minSize
+}
+
+func (lo *FileSelectLayout) Layout(objects []fyne.CanvasObject, containerSize fyne.Size) {
+	if len(objects) != 2 {
+		return
+	}
+	entry := objects[0]
+	button := objects[1]
+
+	buttonMinWidth := button.MinSize().Width
+	button.Resize(button.MinSize())
+	button.Move(fyne.NewPos(containerSize.Width-buttonMinWidth, 0))
+
+	entry.Resize(fyne.NewSize(containerSize.Width-buttonMinWidth-10, entry.MinSize().Height))
+	entry.Move(fyne.NewPos(0, 0))
 }
 
 // makeMenu 用于创建菜单栏
@@ -113,23 +142,29 @@ func readConfigFile(ap fyne.App) {
 
 // showSettings 显示设置
 func showSettings(ap fyne.App, win fyne.Window) {
-	fmt.Printf("%+v\n", config)
 	var photoPathEntry *widget.Entry
-	fmt.Printf("%+v\n", config)
-	gdKeyEntry := widget.NewPasswordEntry()
-	fmt.Printf("%+v\n", config)
-	gdKeyEntry.SetText(config.Key)
-	fmt.Printf("%+v\n", config)
 
+	//Key
+	gdKeyEntry := widget.NewPasswordEntry()
+	gdKeyEntry.SetText(config.Key)
+
+	//照片转存路径
 	photoPathEntry = widget.NewEntry()
 	photoPathEntry.Disable()
 	photoPathEntry.SetPlaceHolder("默认为 旅行名称/pictures")
-	photoPathEntry.Resize(fyne.NewSize(100, photoPathEntry.MinSize().Height))
-	photoPath := container.NewHBox(
-		photoPathEntry,
-	)
-	photoPath.Resize(fyne.NewSize(200, photoPath.MinSize().Height))
+	photoPathEntry.SetText(config.PhotoPath)
 
+	photoOutputButton := widget.NewButton("打开文件夹", func() {
+		dialog.ShowFolderOpen(func(lu fyne.ListableURI, err error) {
+
+		}, win)
+	})
+	photoPath := container.New(&FileSelectLayout{},
+		photoPathEntry,
+		photoOutputButton,
+	)
+
+	//是否转存
 	movePhotoRadio := widget.NewRadioGroup([]string{"是", "否"}, func(s string) {
 		if s == "是" {
 			photoPathEntry.Enable()
@@ -207,7 +242,7 @@ func showAbout(ap fyne.App, win fyne.Window) {
 		widget.NewLabel("版本号"), widget.NewLabel(appVersion),
 		widget.NewLabel("版权信息"), widget.NewLabel("Copyright © 2024 黄嚄嚄."),
 		widget.NewLabel("联系开发者"), container.NewHBox(contactButton, blogButton),
-		widget.NewLabel("开源协议"), container.NewHBox(widget.NewLabel("本软件使用MIT协议"), githubButton),
+		widget.NewLabel("开源协议"), container.NewHBox(widget.NewLabel("本软件使用MIT协议发行"), githubButton),
 		widget.NewLabel("鸣谢"), container.NewGridWithColumns(2,
 			widget.NewButton("Go", func() {
 				u, _ := url.Parse(("https://github.com/golang/go"))
@@ -265,8 +300,4 @@ func makeTabs() *container.AppTabs {
 	)
 	tabs.SetTabLocation(container.TabLocationLeading)
 	return tabs
-}
-
-func debugPrintf(str string) {
-	log.Printf("%s", str)
 }
