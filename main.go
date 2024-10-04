@@ -34,10 +34,8 @@ const githubURL = ""
 // FileSelectLayout 文件选择器布局。包含一个输入框和一个按钮，横向排布
 // 按钮两侧紧贴文本，输入框填充容器剩余空间
 // 传入参数时，先输入框再按钮
+// 选择文件夹也可使用
 type FileSelectLayout struct{}
-
-// FolderSelectLayout 与FileSelectLayout类似，只是用于选择文件夹
-type FolderSelectLayout FileSelectLayout
 
 func main() {
 	ap := app.NewWithID("MapPhotoMD")
@@ -154,24 +152,33 @@ func showSettings(ap fyne.App, win fyne.Window) {
 	photoPathEntry.SetPlaceHolder("默认为 旅行名称/pictures")
 	photoPathEntry.SetText(config.PhotoPath)
 
-	photoOutputButton := widget.NewButton("打开文件夹", func() {
-		dialog.ShowFolderOpen(func(lu fyne.ListableURI, err error) {
-
+	photoPathButton := widget.NewButton("打开文件夹", func() {
+		dialog.ShowFolderOpen(func(list fyne.ListableURI, err error) {
+			//选择文件夹时出错
+			if err != nil {
+				dialog.ShowError(err, win)
+				return
+			}
+			//没有选择
+			if list == nil {
+				return
+			}
+			photoPathEntry.SetText(list.Path())
 		}, win)
 	})
 	photoPath := container.New(&FileSelectLayout{},
 		photoPathEntry,
-		photoOutputButton,
+		photoPathButton,
 	)
 
 	//是否转存
 	movePhotoRadio := widget.NewRadioGroup([]string{"是", "否"}, func(s string) {
 		if s == "是" {
 			photoPathEntry.Enable()
-			config.MovePhoto = true
+			photoPathButton.Enable()
 		} else {
 			photoPathEntry.Disable()
-			config.MovePhoto = false
+			photoPathButton.Disable()
 		}
 	})
 	switch config.MovePhoto {
@@ -194,6 +201,13 @@ func showSettings(ap fyne.App, win fyne.Window) {
 		}
 		//用户选择保存，则保存输入的Key
 		config.Key = gdKeyEntry.Text
+		config.PhotoPath = photoPathEntry.Text
+		switch movePhotoRadio.Selected {
+		case "是":
+			config.MovePhoto = true
+		case "否":
+			config.MovePhoto = false
+		}
 		jsonData, err := json.Marshal(config)
 		if err != nil {
 			ap.SendNotification(&fyne.Notification{
