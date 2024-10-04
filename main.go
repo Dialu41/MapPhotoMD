@@ -46,7 +46,7 @@ func main() {
 	win.SetMaster()
 	win.Resize(fyne.NewSize(640, 460))
 	win.SetMainMenu(makeMenu(ap, win)) //设置菜单栏
-	win.SetContent(makeTabs())         //设置各选项卡的内容
+	win.SetContent(makeTabs(win))      //设置各选项卡的内容
 	win.CenterOnScreen()               //主窗口居中显示
 
 	win.ShowAndRun()
@@ -288,7 +288,7 @@ func showAbout(ap fyne.App, win fyne.Window) {
 }
 
 // makeTabs 创建主窗口的选项卡
-func makeTabs() *container.AppTabs {
+func makeTabs(win fyne.Window) *container.AppTabs {
 	var tabs *container.AppTabs
 	var (
 		travelTab     *container.TabItem
@@ -317,7 +317,53 @@ func makeTabs() *container.AppTabs {
 	}
 
 	/*********设置导入导出选项卡********/
-	IOputTabContent := &widget.Form{}
+	inputPhotoEntry := widget.NewEntry()
+	inputPhotoButton := widget.NewButton("选择文件夹", func() {
+		dialog.ShowFolderOpen(func(list fyne.ListableURI, err error) {
+			//选择文件夹时出错
+			if err != nil {
+				dialog.ShowError(err, win)
+				return
+			}
+			//没有选择
+			if list == nil {
+				return
+			}
+			inputPhotoEntry.SetText(list.Path())
+		}, win)
+	})
+	inputPhoto := container.New(&FileSelectLayout{}, inputPhotoEntry, inputPhotoButton)
+
+	outputPathEntry := widget.NewEntry()
+	outputPathButton := widget.NewButton("选择文件夹", func() {
+		dialog.ShowFolderOpen(func(list fyne.ListableURI, err error) {
+			//选择文件夹时出错
+			if err != nil {
+				dialog.ShowError(err, win)
+				return
+			}
+			//没有选择
+			if list == nil {
+				return
+			}
+			outputPathEntry.SetText(list.Path())
+		}, win)
+	})
+	outputPath := container.New(&FileSelectLayout{}, outputPathEntry, outputPathButton)
+	IOputTabContent := &widget.Form{
+		Items: []*widget.FormItem{
+			{Text: "导入照片", Widget: inputPhoto},
+			{Text: "导出到Ob库", Widget: outputPath},
+		},
+		OnSubmit: func() {
+			tabs.Select(propertiesTab)
+		},
+		SubmitText: "下一步",
+		OnCancel: func() {
+			tabs.Select(travelTab)
+		},
+		CancelText: "上一步",
+	}
 
 	propertiesTabContent := &widget.Form{}
 
