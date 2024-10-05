@@ -147,6 +147,15 @@ func showSettings(ap fyne.App, win fyne.Window) {
 	gdKeyEntry := widget.NewPasswordEntry()
 	gdKeyEntry.SetText(config.Key)
 
+	//是否删除原照片
+	deletePhotoRadio := widget.NewRadioGroup([]string{"是", "否"}, func(s string) {})
+	switch config.DeletePhoto {
+	case true:
+		deletePhotoRadio.SetSelected("是")
+	case false:
+		deletePhotoRadio.SetSelected("否")
+	}
+
 	//照片转存路径
 	photoPathEntry = widget.NewEntry()
 	photoPathEntry.Disable()
@@ -177,9 +186,11 @@ func showSettings(ap fyne.App, win fyne.Window) {
 		if s == "是" {
 			photoPathEntry.Enable()
 			photoPathButton.Enable()
+			deletePhotoRadio.Enable()
 		} else {
 			photoPathEntry.Disable()
 			photoPathButton.Disable()
+			deletePhotoRadio.Disable()
 		}
 	})
 	switch config.MovePhoto {
@@ -187,15 +198,6 @@ func showSettings(ap fyne.App, win fyne.Window) {
 		movePhotoRadio.SetSelected("是")
 	case false:
 		movePhotoRadio.SetSelected("否")
-	}
-
-	//是否删除原照片
-	deletePhotoRadio := widget.NewRadioGroup([]string{"是", "否"}, func(s string) {})
-	switch config.DeletePhoto {
-	case true:
-		deletePhotoRadio.SetSelected("是")
-	case false:
-		deletePhotoRadio.SetSelected("否")
 	}
 
 	items := []*widget.FormItem{
@@ -380,7 +382,10 @@ func makeTabs(win fyne.Window) *container.AppTabs {
 		),
 	)
 
-	propertiesTabContent := &widget.Form{}
+	/*********设置添加属性选项卡********/
+	propertiesTabContent := container.NewVBox(
+		widget.NewButton("test01", func() {}),
+	)
 
 	travelTab = container.NewTabItem("旅行信息", travelTabContent)
 	IOputTab = container.NewTabItem("导入导出设置", IOputTabContent)
