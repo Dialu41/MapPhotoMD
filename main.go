@@ -1,6 +1,7 @@
 package main
 
 import (
+	"MapPhotoMD/mywidget"
 	"encoding/json"
 	"io"
 	"net/url"
@@ -16,15 +17,26 @@ import (
 	xWidget "fyne.io/x/fyne/widget"
 )
 
+// Property 旅行记录的一条YAML属性
+type Property struct {
+	Type  string `json:"type"`  //属性类型
+	Name  string `json:"name"`  //属性名称
+	Value string `json:"value"` //属性值
+}
+
 // UserConfig 用户配置数据
 type UserConfig struct {
-	Key         string `json:"key"`          //高德key
-	MovePhoto   bool   `json:"move_photo"`   //是否转存照片
-	PhotoPath   string `json:"photo_path"`   //转存路径
-	DeletePhoto bool   `json:"delete_Photo"` //是否删除原照片
+	Key         string      `json:"key"`          //高德key
+	MovePhoto   bool        `json:"move_photo"`   //是否转存照片
+	PhotoPath   string      `json:"photo_path"`   //转存路径
+	DeletePhoto bool        `json:"delete_Photo"` //是否删除原照片
+	Properties  []*Property `json:"properties"`   //旅行记录YAML属性
 }
 
 var config UserConfig
+
+// proIndex 保存所有property控件的地址
+var proIndex []*fyne.Container
 
 // appVersion 软件版本号
 const appVersion = "v1.0"
@@ -149,7 +161,7 @@ func showSettings(ap fyne.App, win fyne.Window) {
 
 	//是否删除原照片
 	deletePhotoRadio := widget.NewRadioGroup([]string{"是", "否"}, func(s string) {})
-	switch config.DeletePhoto {
+	switch config.DeletePhoto { //还原设置
 	case true:
 		deletePhotoRadio.SetSelected("是")
 	case false:
@@ -158,10 +170,11 @@ func showSettings(ap fyne.App, win fyne.Window) {
 
 	//照片转存路径
 	photoPathEntry = widget.NewEntry()
-	photoPathEntry.Disable()
+	photoPathEntry.Disable() //默认不转存
 	photoPathEntry.SetPlaceHolder("默认为 旅行名称/pictures")
-	photoPathEntry.SetText(config.PhotoPath)
+	photoPathEntry.SetText(config.PhotoPath) //还原设置
 
+	//点击选定转存路径，并显示在输入框中
 	photoPathButton := widget.NewButton("打开文件夹", func() {
 		dialog.ShowFolderOpen(func(list fyne.ListableURI, err error) {
 			//选择文件夹时出错
@@ -272,6 +285,7 @@ func showAbout(ap fyne.App, win fyne.Window) {
 		u, _ := url.Parse(githubURL)
 		_ = ap.OpenURL(u)
 	})
+
 	content := container.NewGridWithColumns(2,
 		widget.NewLabel("版本号"), widget.NewLabel(appVersion),
 		widget.NewLabel("版权信息"), widget.NewLabel("Copyright © 2024 黄嚄嚄."),
@@ -292,6 +306,7 @@ func showAbout(ap fyne.App, win fyne.Window) {
 
 // makeTabs 创建主窗口的选项卡
 func makeTabs(win fyne.Window) *container.AppTabs {
+	//tabs 所有选项卡的指针，用于跳转选项卡
 	var tabs *container.AppTabs
 	var (
 		travelTab     *container.TabItem
@@ -302,23 +317,29 @@ func makeTabs(win fyne.Window) *container.AppTabs {
 	/********设置旅行信息选项卡*********/
 	travelName := widget.NewEntry()
 	travelName.SetPlaceHolder("例：故宫一日游")
+
 	travelDate := widget.NewEntry()
 	travelDate.SetPlaceHolder("点击日历，选择旅行开始的第一天")
+
+	//日历，点击日期时将日期赋值给输入框
 	datePicker := xWidget.NewCalendar(time.Now(), func(t time.Time) {
 		travelDate.SetText(t.Format("2006-01-02"))
 	})
+
+	//跳转下一个选项卡
 	travelNextButton := widget.NewButton("下一步", func() {
 		tabs.Select(IOputTab)
 	})
 	travelNextButton.Importance = widget.HighImportance
+
 	travelTabContent := container.NewVBox(
 		widget.NewForm(
 			widget.NewFormItem("旅行名称", travelName),
 			widget.NewFormItem("旅行日期", travelDate),
 			widget.NewFormItem("", datePicker)),
-		//保持按钮靠下
+		//保持跳转按钮靠下
 		layout.NewSpacer(),
-		//保持按钮居中
+		//保持跳转按钮居中
 		container.NewHBox(
 			layout.NewSpacer(),
 			travelNextButton,
@@ -328,6 +349,7 @@ func makeTabs(win fyne.Window) *container.AppTabs {
 
 	/*********设置导入导出选项卡********/
 	inputPhotoEntry := widget.NewEntry()
+
 	inputPhotoButton := widget.NewButton("选择文件夹", func() {
 		dialog.ShowFolderOpen(func(list fyne.ListableURI, err error) {
 			//选择文件夹时出错
@@ -383,8 +405,62 @@ func makeTabs(win fyne.Window) *container.AppTabs {
 	)
 
 	/*********设置添加属性选项卡********/
+	//初始时显示一条属性
+	proIndex = append(proIndex, mywidget.NewProperty(map[string]string{
+		"标签": "tags",
+		"别名": "aliases",
+		"文本": "",
+	}, "属性类型", "属性名称", "属性值"))
+
+	//所有属性控件纵向排列
+	proContainer := container.NewVBox(proIndex[0])
+
+	//点击开始生成旅行记录文件及文件夹，如设置保存属性，则与设置项一并保存到config.json
+	proNextButton := widget.NewButton("开始生成", func() {})
+	proNextButton.Importance = widget.DangerImportance
+
+	//跳转上一个选项卡
+	proBackButton := widget.NewButton("上一步", func() {
+		tabs.Select(IOputTab)
+	})
+
+	//点击添加一条属性
+	addProButton := widget.NewButton("添加属性", func() {
+		proIndex = append(proIndex, mywidget.NewProperty(map[string]string{
+			"标签": "tags",
+			"别名": "aliases",
+			"文本": "",
+		}, "属性类型", "属性名称", "属性值"))
+		proContainer.Add(proIndex[len(proIndex)-1])
+	})
+	addProButton.Importance = widget.HighImportance
+
+	//点击删除一条属性，少于两条时无效
+	deleteProButton := widget.NewButton("删除属性", func() {
+		length := len(proIndex)
+		if length > 1 {
+			proContainer.Remove(proIndex[length-1])
+			proIndex = proIndex[:length-1]
+		}
+	})
+
 	propertiesTabContent := container.NewVBox(
-		widget.NewButton("test01", func() {}),
+		proContainer,
+		//增删属性按钮居中
+		container.NewHBox(
+			layout.NewSpacer(),
+			deleteProButton,
+			addProButton,
+			layout.NewSpacer(),
+		),
+		//跳转及生成按钮中间靠下
+		layout.NewSpacer(),
+		container.NewHBox(
+			layout.NewSpacer(),
+			proBackButton,
+			proNextButton,
+			layout.NewSpacer(),
+		),
 	)
 
 	travelTab = container.NewTabItem("旅行信息", travelTabContent)
@@ -395,6 +471,9 @@ func makeTabs(win fyne.Window) *container.AppTabs {
 		IOputTab,
 		propertiesTab,
 	)
+
+	//选项卡靠左
 	tabs.SetTabLocation(container.TabLocationLeading)
+
 	return tabs
 }
