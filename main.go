@@ -17,20 +17,13 @@ import (
 	xWidget "fyne.io/x/fyne/widget"
 )
 
-// Property 旅行记录的一条YAML属性
-type Property struct {
-	Type  string `json:"type"`  //属性类型
-	Name  string `json:"name"`  //属性名称
-	Value string `json:"value"` //属性值
-}
-
 // UserConfig 用户配置数据
 type UserConfig struct {
-	Key         string      `json:"key"`          //高德key
-	MovePhoto   bool        `json:"move_photo"`   //是否转存照片
-	PhotoPath   string      `json:"photo_path"`   //转存路径
-	DeletePhoto bool        `json:"delete_Photo"` //是否删除原照片
-	Properties  []*Property `json:"properties"`   //旅行记录YAML属性
+	Key         string                   `json:"key"`          //高德key
+	MovePhoto   bool                     `json:"move_photo"`   //是否转存照片
+	PhotoPath   string                   `json:"photo_path"`   //转存路径
+	DeletePhoto bool                     `json:"delete_Photo"` //是否删除原照片
+	Properties  []*mywidget.PropertyData `json:"properties"`   //旅行记录YAML属性
 }
 
 var config UserConfig
@@ -416,7 +409,9 @@ func makeTabs(win fyne.Window) *container.AppTabs {
 	proContainer := container.NewVBox(proIndex[0])
 
 	//点击开始生成旅行记录文件及文件夹，如设置保存属性，则与设置项一并保存到config.json
-	proNextButton := widget.NewButton("开始生成", func() {})
+	proNextButton := widget.NewButton("开始生成", func() {
+
+	})
 	proNextButton.Importance = widget.DangerImportance
 
 	//跳转上一个选项卡

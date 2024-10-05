@@ -6,6 +6,13 @@ import (
 	"fyne.io/fyne/v2/widget"
 )
 
+// PropertyData 属性控件的数据结构体
+type PropertyData struct {
+	Type  string `json:"type"`  //属性类型
+	Name  string `json:"name"`  //属性名称
+	Value string `json:"value"` //属性值
+}
+
 type PropertyLayout struct{}
 
 func (lo *PropertyLayout) MinSize(objects []fyne.CanvasObject) fyne.Size {
@@ -56,4 +63,38 @@ func NewProperty(type2Name map[string]string, typePlaceHolder string, namePlaceH
 
 	return container.New(&PropertyLayout{}, proType, proName, proValue)
 
+}
+
+// GetPropertyData 获取传入属性控件的子控件的值，以结构体指针作为返回
+func GetPropertyData(property *fyne.Container) *PropertyData {
+	data := PropertyData{}
+	for i, obj := range property.Objects {
+		switch v := obj.(type) {
+		case *widget.Select:
+			switch v.Selected {
+			case "标签":
+				data.Type = "tags"
+			case "别名":
+				data.Type = "aliases"
+			case "文本":
+				data.Type = "text"
+			case "列表":
+				data.Type = "list"
+			case "数字":
+				data.Type = "number"
+			case "复选框":
+				data.Type = "check"
+			case "日期":
+				data.Type = "date"
+			}
+		case *widget.Entry:
+			switch i {
+			case 1:
+				data.Name = v.Text
+			case 2:
+				data.Value = v.Text
+			}
+		}
+	}
+	return &data
 }
