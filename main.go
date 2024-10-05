@@ -19,11 +19,12 @@ import (
 
 // UserConfig 用户配置数据
 type UserConfig struct {
-	Key         string                   `json:"key"`          //高德key
-	MovePhoto   bool                     `json:"move_photo"`   //是否转存照片
-	PhotoPath   string                   `json:"photo_path"`   //转存路径
-	DeletePhoto bool                     `json:"delete_Photo"` //是否删除原照片
-	Properties  []*mywidget.PropertyData `json:"properties"`   //旅行记录YAML属性
+	Key            string                   `json:"key"`             //高德key
+	MovePhoto      bool                     `json:"move_photo"`      //是否转存照片
+	PhotoPath      string                   `json:"photo_path"`      //转存路径
+	DeletePhoto    bool                     `json:"delete_Photo"`    //是否删除原照片
+	SaveProperties bool                     `json:"save_properties"` //是否保存YAML属性
+	Properties     []*mywidget.PropertyData `json:"properties"`      //旅行记录YAML属性
 }
 
 var config UserConfig
@@ -206,11 +207,21 @@ func showSettings(ap fyne.App, win fyne.Window) {
 		movePhotoRadio.SetSelected("否")
 	}
 
+	//是否保存属性
+	savePropertiesRadio := widget.NewRadioGroup([]string{"是", "否"}, func(s string) {})
+	switch config.SaveProperties {
+	case true:
+		savePropertiesRadio.SetSelected("是")
+	case false:
+		savePropertiesRadio.SetSelected("否")
+	}
+
 	items := []*widget.FormItem{
 		widget.NewFormItem("高德Key", gdKeyEntry),
 		widget.NewFormItem("是否转存照片", movePhotoRadio),
 		widget.NewFormItem("照片转存路径", photoPath),
 		widget.NewFormItem("是否删除原照片", deletePhotoRadio),
+		widget.NewFormItem("是否保存属性", savePropertiesRadio),
 	}
 
 	settingDialog := dialog.NewForm("设置", "保存", "取消", items, func(b bool) {
@@ -232,6 +243,12 @@ func showSettings(ap fyne.App, win fyne.Window) {
 			config.DeletePhoto = true
 		case "否":
 			config.DeletePhoto = false
+		}
+		switch savePropertiesRadio.Selected {
+		case "是":
+			config.SaveProperties = true
+		case "否":
+			config.SaveProperties = false
 		}
 
 		jsonData, err := json.Marshal(config)
@@ -400,9 +417,14 @@ func makeTabs(win fyne.Window) *container.AppTabs {
 	/*********设置添加属性选项卡********/
 	//初始时显示一条属性
 	proIndex = append(proIndex, mywidget.NewProperty(map[string]string{
-		"标签": "tags",
-		"别名": "aliases",
-		"文本": "",
+		"标签":  "tags",
+		"别名":  "aliases",
+		"样式":  "cssclasses",
+		"文本":  "",
+		"列表":  "",
+		"数字":  "",
+		"复选框": "",
+		"日期":  "",
 	}, "属性类型", "属性名称", "属性值"))
 
 	//所有属性控件纵向排列
@@ -410,7 +432,7 @@ func makeTabs(win fyne.Window) *container.AppTabs {
 
 	//点击开始生成旅行记录文件及文件夹，如设置保存属性，则与设置项一并保存到config.json
 	proNextButton := widget.NewButton("开始生成", func() {
-
+		//按照用户设置选择是否保存属性
 	})
 	proNextButton.Importance = widget.DangerImportance
 
@@ -422,9 +444,14 @@ func makeTabs(win fyne.Window) *container.AppTabs {
 	//点击添加一条属性
 	addProButton := widget.NewButton("添加属性", func() {
 		proIndex = append(proIndex, mywidget.NewProperty(map[string]string{
-			"标签": "tags",
-			"别名": "aliases",
-			"文本": "",
+			"标签":  "tags",
+			"别名":  "aliases",
+			"样式":  "cssclasses",
+			"文本":  "",
+			"列表":  "",
+			"数字":  "",
+			"复选框": "",
+			"日期":  "",
 		}, "属性类型", "属性名称", "属性值"))
 		proContainer.Add(proIndex[len(proIndex)-1])
 	})
