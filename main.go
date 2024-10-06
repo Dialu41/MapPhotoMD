@@ -30,7 +30,7 @@ type UserConfig struct {
 var config UserConfig
 
 // proIndex 保存所有property控件的地址
-var proIndex []*fyne.Container
+var proIndex []*mywidget.Property
 
 // appVersion 软件版本号
 const appVersion = "v1.0"
@@ -146,7 +146,7 @@ func showSettings(ap fyne.App, win fyne.Window) {
 	photoPath := mywidget.NewFolderOpenWithEntry(func(s string) {
 		temp.PhotoPath = s
 	}, "默认为 旅行名称/pictures", win)
-	mywidget.SetEntryText(photoPath, config.PhotoPath) //还原设置
+	photoPath.SetEntryText(config.PhotoPath) //还原设置
 
 	//是否删除原照片
 	deletePhotoRadio := widget.NewRadioGroup([]string{"是", "否"}, func(s string) {
@@ -167,10 +167,10 @@ func showSettings(ap fyne.App, win fyne.Window) {
 	movePhotoRadio := widget.NewRadioGroup([]string{"是", "否"}, func(s string) {
 		//改变转存路径选择控件的状态，临时保存设置
 		if s == "是" {
-			mywidget.Enable(photoPath)
+			photoPath.Enable()
 			temp.MovePhoto = true
 		} else {
-			mywidget.Disable(photoPath)
+			photoPath.Disable()
 			temp.MovePhoto = false
 		}
 	})
@@ -364,7 +364,7 @@ func makeTabs(ap fyne.App, win fyne.Window) *container.AppTabs {
 		//按照用户设置，选择是否保存属性
 		if config.SaveProperties {
 			for _, pIndex := range proIndex {
-				proData := mywidget.GetPropertyData(pIndex)
+				proData := pIndex.GetPropertyData()
 				if proData.Name != "" { //未指定属性名称的不保存
 					config.Properties = append(config.Properties, proData)
 				}

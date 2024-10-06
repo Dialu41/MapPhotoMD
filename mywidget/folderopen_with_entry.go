@@ -7,6 +7,11 @@ import (
 	"fyne.io/fyne/v2/widget"
 )
 
+type FolderOpenWithEntry struct {
+	widget.BaseWidget
+	feContainer *fyne.Container
+}
+
 type FolderOpenWithEntryLayout struct{}
 
 func (lo *FolderOpenWithEntryLayout) MinSize(objects []fyne.CanvasObject) fyne.Size {
@@ -32,7 +37,7 @@ func (lo *FolderOpenWithEntryLayout) Layout(objects []fyne.CanvasObject, contain
 	entry.Move(fyne.NewPos(0, 0))
 }
 
-func NewFolderOpenWithEntry(entryChanged func(s string), entryPlaceHolder string, win fyne.Window) *fyne.Container {
+func NewFolderOpenWithEntry(entryChanged func(s string), entryPlaceHolder string, win fyne.Window) *FolderOpenWithEntry {
 	entry := widget.NewEntry()
 	button := widget.NewButton("打开文件夹", func() {
 		dialog.ShowFolderOpen(func(list fyne.ListableURI, err error) {
@@ -53,11 +58,19 @@ func NewFolderOpenWithEntry(entryChanged func(s string), entryPlaceHolder string
 	entry.OnChanged = entryChanged
 	entry.SetPlaceHolder(entryPlaceHolder)
 
-	return container.New(&FolderOpenWithEntryLayout{}, entry, button)
+	t := &FolderOpenWithEntry{}
+	t.ExtendBaseWidget(t)
+	t.feContainer = container.New(&FolderOpenWithEntryLayout{}, entry, button)
+
+	return t
 }
 
-func SetEntryText(folderOpen *fyne.Container, s string) {
-	for _, obj := range folderOpen.Objects {
+func (t *FolderOpenWithEntry) CreateRenderer() fyne.WidgetRenderer {
+	return widget.NewSimpleRenderer(t.feContainer)
+}
+
+func (t *FolderOpenWithEntry) SetEntryText(s string) {
+	for _, obj := range t.feContainer.Objects {
 		switch v := obj.(type) {
 		case *widget.Entry:
 			v.SetText(s)
@@ -65,8 +78,8 @@ func SetEntryText(folderOpen *fyne.Container, s string) {
 	}
 }
 
-func Enable(folderOpen *fyne.Container) {
-	for _, obj := range folderOpen.Objects {
+func (t *FolderOpenWithEntry) Enable() {
+	for _, obj := range t.feContainer.Objects {
 		switch v := obj.(type) {
 		case *widget.Entry:
 			v.Enable()
@@ -76,8 +89,8 @@ func Enable(folderOpen *fyne.Container) {
 	}
 }
 
-func Disable(folderOpen *fyne.Container) {
-	for _, obj := range folderOpen.Objects {
+func (t *FolderOpenWithEntry) Disable() {
+	for _, obj := range t.feContainer.Objects {
 		switch v := obj.(type) {
 		case *widget.Entry:
 			v.Disable()
