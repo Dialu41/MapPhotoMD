@@ -53,7 +53,7 @@ func main() {
 	win.Resize(fyne.NewSize(640, 440))
 	win.SetMaster()
 	win.SetMainMenu(makeMenu(ap, win)) //设置菜单栏
-	win.SetContent(makeTabs(win))      //设置各选项卡的内容
+	win.SetContent(makeTabs(ap, win))  //设置各选项卡的内容
 	win.CenterOnScreen()               //主窗口居中显示
 
 	win.ShowAndRun()
@@ -105,7 +105,7 @@ func makeMenu(ap fyne.App, win fyne.Window) *fyne.MainMenu {
 	return mainMenu
 }
 
-// readConfigFile 用于读取配置文件，如成功则将数据保存到cfg，否则发送错误提醒
+// readConfigFile 用于读取配置文件，如成功则将数据保存到config，否则发送错误提醒
 func readConfigFile(ap fyne.App) {
 	//打开配置文件
 	file, err := os.Open("config.json")
@@ -147,14 +147,23 @@ func readConfigFile(ap fyne.App) {
 
 // showSettings 显示设置
 func showSettings(ap fyne.App, win fyne.Window) {
-	var photoPathEntry *widget.Entry
+	readConfigFile(ap)
 
 	//Key
 	gdKeyEntry := widget.NewPasswordEntry()
-	gdKeyEntry.SetText(config.Key)
+	gdKeyEntry.SetText(config.Key)          //还原设置
+	gdKeyEntry.OnChanged = func(s string) { //自动保存到config变量
+		config.Key = s
+	}
 
 	//是否删除原照片
-	deletePhotoRadio := widget.NewRadioGroup([]string{"是", "否"}, func(s string) {})
+	deletePhotoRadio := widget.NewRadioGroup([]string{"是", "否"}, func(s string) {
+		if s == "是" { //自动保存到config变量
+			config.DeletePhoto = true
+		} else {
+			config.DeletePhoto = false
+		}
+	})
 	switch config.DeletePhoto { //还原设置
 	case true:
 		deletePhotoRadio.SetSelected("是")
@@ -163,7 +172,10 @@ func showSettings(ap fyne.App, win fyne.Window) {
 	}
 
 	//照片转存路径
-	photoPathEntry = widget.NewEntry()
+	photoPathEntry := widget.NewEntry()
+	photoPathEntry.OnChanged = func(s string) { //自动保存到config
+		config.PhotoPath = s
+	}
 	photoPathEntry.Disable() //默认不转存
 	photoPathEntry.SetPlaceHolder("默认为 旅行名称/pictures")
 	photoPathEntry.SetText(config.PhotoPath) //还原设置
@@ -190,17 +202,20 @@ func showSettings(ap fyne.App, win fyne.Window) {
 
 	//是否转存
 	movePhotoRadio := widget.NewRadioGroup([]string{"是", "否"}, func(s string) {
+		//改变转存路径选择控件的状态，保存设置到config
 		if s == "是" {
 			photoPathEntry.Enable()
 			photoPathButton.Enable()
 			deletePhotoRadio.Enable()
+			config.MovePhoto = true
 		} else {
 			photoPathEntry.Disable()
 			photoPathButton.Disable()
 			deletePhotoRadio.Disable()
+			config.MovePhoto = false
 		}
 	})
-	switch config.MovePhoto {
+	switch config.MovePhoto { //还原设置
 	case true:
 		movePhotoRadio.SetSelected("是")
 	case false:
@@ -208,8 +223,14 @@ func showSettings(ap fyne.App, win fyne.Window) {
 	}
 
 	//是否保存属性
-	savePropertiesRadio := widget.NewRadioGroup([]string{"是", "否"}, func(s string) {})
-	switch config.SaveProperties {
+	savePropertiesRadio := widget.NewRadioGroup([]string{"是", "否"}, func(s string) {
+		if s == "是" {
+			config.SaveProperties = true
+		} else {
+			config.SaveProperties = false
+		}
+	})
+	switch config.SaveProperties { //还原设置
 	case true:
 		savePropertiesRadio.SetSelected("是")
 	case false:
@@ -230,43 +251,7 @@ func showSettings(ap fyne.App, win fyne.Window) {
 			return
 		}
 		//用户选择保存，则保存输入的Key
-		config.Key = gdKeyEntry.Text
-		config.PhotoPath = photoPathEntry.Text
-		switch movePhotoRadio.Selected {
-		case "是":
-			config.MovePhoto = true
-		case "否":
-			config.MovePhoto = false
-		}
-		switch deletePhotoRadio.Selected {
-		case "是":
-			config.DeletePhoto = true
-		case "否":
-			config.DeletePhoto = false
-		}
-		switch savePropertiesRadio.Selected {
-		case "是":
-			config.SaveProperties = true
-		case "否":
-			config.SaveProperties = false
-		}
-
-		jsonData, err := json.Marshal(config)
-		if err != nil {
-			ap.SendNotification(&fyne.Notification{
-				Title:   "错误",
-				Content: "序列化配置文件时出错，请联系开发者",
-			})
-			return
-		}
-		err = os.WriteFile("config.json", jsonData, 0644)
-		if err != nil {
-			ap.SendNotification(&fyne.Notification{
-				Title:   "错误",
-				Content: "保存配置文件时出错，请联系开发者",
-			})
-			return
-		}
+		saveConfigFile(ap)
 	}, win)
 	settingDialog.Resize(fyne.NewSize(500, settingDialog.MinSize().Height))
 	settingDialog.Show()
@@ -315,7 +300,7 @@ func showAbout(ap fyne.App, win fyne.Window) {
 }
 
 // makeTabs 创建主窗口的选项卡
-func makeTabs(win fyne.Window) *container.AppTabs {
+func makeTabs(ap fyne.App, win fyne.Window) *container.AppTabs {
 	//tabs 所有选项卡的指针，用于跳转选项卡
 	var tabs *container.AppTabs
 	var (
@@ -415,8 +400,8 @@ func makeTabs(win fyne.Window) *container.AppTabs {
 	)
 
 	/*********设置添加属性选项卡********/
-	//初始时显示一条属性
-	proIndex = append(proIndex, mywidget.NewProperty(map[string]string{
+	//属性类型及其对应的默认属性名称
+	type2Name := map[string]string{
 		"标签":  "tags",
 		"别名":  "aliases",
 		"样式":  "cssclasses",
@@ -425,14 +410,34 @@ func makeTabs(win fyne.Window) *container.AppTabs {
 		"数字":  "",
 		"复选框": "",
 		"日期":  "",
-	}, "属性类型", "属性名称", "属性值"))
+	}
+	//默认属性类型
+	defaultType := "文本"
 
 	//所有属性控件纵向排列
-	proContainer := container.NewVBox(proIndex[0])
+	proContainer := container.NewVBox()
+
+	//还原保存的属性设置
+	for _, pro := range config.Properties {
+		proIndex = append(proIndex, mywidget.NewProperty(type2Name, pro.Type, pro.Name, pro.Value))
+		proContainer.Add(proIndex[len(proIndex)-1])
+	}
 
 	//点击开始生成旅行记录文件及文件夹，如设置保存属性，则与设置项一并保存到config.json
 	proNextButton := widget.NewButton("开始生成", func() {
-		//按照用户设置选择是否保存属性
+		//读取已保存的配置
+		readConfigFile(ap)
+		//按照用户设置，选择是否保存属性
+		if config.SaveProperties {
+			config.Properties = config.Properties[:0] //清空已保存的属性，以存入新属性
+			for _, pIndex := range proIndex {
+				proData := mywidget.GetPropertyData(pIndex)
+				if proData.Name != "" { //未指定属性名称的不保存
+					config.Properties = append(config.Properties, proData)
+				}
+			}
+			saveConfigFile(ap)
+		}
 	})
 	proNextButton.Importance = widget.DangerImportance
 
@@ -443,24 +448,15 @@ func makeTabs(win fyne.Window) *container.AppTabs {
 
 	//点击添加一条属性
 	addProButton := widget.NewButton("添加属性", func() {
-		proIndex = append(proIndex, mywidget.NewProperty(map[string]string{
-			"标签":  "tags",
-			"别名":  "aliases",
-			"样式":  "cssclasses",
-			"文本":  "",
-			"列表":  "",
-			"数字":  "",
-			"复选框": "",
-			"日期":  "",
-		}, "属性类型", "属性名称", "属性值"))
+		proIndex = append(proIndex, mywidget.NewProperty(type2Name, defaultType, "", ""))
 		proContainer.Add(proIndex[len(proIndex)-1])
 	})
 	addProButton.Importance = widget.HighImportance
 
-	//点击删除一条属性，少于两条时无效
+	//点击删除一条属性，少于一条时无效
 	deleteProButton := widget.NewButton("删除属性", func() {
 		length := len(proIndex)
-		if length > 1 {
+		if length > 0 {
 			proContainer.Remove(proIndex[length-1])
 			proIndex = proIndex[:length-1]
 		}
@@ -498,4 +494,24 @@ func makeTabs(win fyne.Window) *container.AppTabs {
 	tabs.SetTabLocation(container.TabLocationLeading)
 
 	return tabs
+}
+
+// saveConfigFile 保存设置到config.json
+func saveConfigFile(ap fyne.App) {
+	jsonData, err := json.Marshal(config)
+	if err != nil {
+		ap.SendNotification(&fyne.Notification{
+			Title:   "错误",
+			Content: "序列化配置文件时出错，请联系开发者",
+		})
+		return
+	}
+	err = os.WriteFile("config.json", jsonData, 0644)
+	if err != nil {
+		ap.SendNotification(&fyne.Notification{
+			Title:   "错误",
+			Content: "保存配置文件时出错，请联系开发者",
+		})
+		return
+	}
 }

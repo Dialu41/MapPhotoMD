@@ -42,24 +42,30 @@ func (lo *PropertyLayout) Layout(objects []fyne.CanvasObject, containerSize fyne
 }
 
 // NewProperty 创建组合控件Property，用于输入旅行记录的单条YAML属性。
-// 传入参数：type2Name 属性类型及其对应的默认属性名称；其余为控件的占位符，未输入时显示。
-// 布局：水平排列。属性类型控件固定宽度，属性名称控件占剩余宽度的1/3，属性值控件占剩余宽度2/3。控件间固定间隔10，控件到边缘固定距离5
-func NewProperty(type2Name map[string]string, typePlaceHolder string, namePlaceHolder string, valuePlaceHolder string) *fyne.Container {
+// 传入参数：type2Name 属性类型及其对应的默认属性名称；其余为子控件的默认值。
+// 布局：水平排列。属性类型控件固定宽度，属性名称控件占剩余宽度的1/3，属性值控件占剩余宽度2/3。控件间固定间隔10，控件到边缘固定距离5。
+func NewProperty(type2Name map[string]string, defaultType string, defaultName string, defaultValue string) *fyne.Container {
 	proName := widget.NewEntry()
-	proName.SetPlaceHolder(namePlaceHolder)
+	proName.SetPlaceHolder("属性名称")
+	proName.SetText(defaultName)
 
 	var types []string
 	for t := range type2Name {
+		//提取出属性类型
 		types = append(types, t)
 	}
 	proType := widget.NewSelect(types, func(s string) {
-		proName.SetText(type2Name[s])
-
+		//选定属性类型时，自动更改属性名称，默认属性名称为空时不更改
+		if type2Name[s] != "" {
+			proName.SetText(type2Name[s])
+		}
 	})
-	proType.Selected = typePlaceHolder
+	//设置默认属性类型
+	proType.SetSelected(defaultType)
 
 	proValue := widget.NewEntry()
-	proValue.SetPlaceHolder(valuePlaceHolder)
+	proValue.SetPlaceHolder("属性值")
+	proValue.SetText(defaultValue)
 
 	return container.New(&PropertyLayout{}, proType, proName, proValue)
 
@@ -70,28 +76,13 @@ func GetPropertyData(property *fyne.Container) *PropertyData {
 	data := PropertyData{}
 	for i, obj := range property.Objects {
 		switch v := obj.(type) {
-		case *widget.Select:
-			switch v.Selected {
-			case "标签":
-				data.Type = "tags"
-			case "别名":
-				data.Type = "aliases"
-			case "文本":
-				data.Type = "text"
-			case "列表":
-				data.Type = "list"
-			case "数字":
-				data.Type = "number"
-			case "复选框":
-				data.Type = "check"
-			case "日期":
-				data.Type = "date"
-			}
+		case *widget.Select: //获取属性类型
+			data.Type = v.Selected
 		case *widget.Entry:
 			switch i {
-			case 1:
+			case 1: //获取属性名称
 				data.Name = v.Text
-			case 2:
+			case 2: //获取属性值
 				data.Value = v.Text
 			}
 		}
