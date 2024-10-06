@@ -133,7 +133,13 @@ func showSettings(ap fyne.App, win fyne.Window) {
 		PhotoPath      string
 		DeletePhoto    bool
 		SaveProperties bool
-	}{}
+	}{
+		Key:            config.Key,
+		MovePhoto:      config.MovePhoto,
+		PhotoPath:      config.PhotoPath,
+		DeletePhoto:    config.DeletePhoto,
+		SaveProperties: config.SaveProperties,
+	}
 
 	//Key
 	gdKeyEntry := widget.NewPasswordEntry()
