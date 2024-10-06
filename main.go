@@ -50,36 +50,13 @@ func main() {
 
 	readConfigFile(ap) //读取配置文件
 
-	win.Resize(fyne.NewSize(640, 440))
+	win.Resize(fyne.NewSize(700, 500))
 	win.SetMaster()
 	win.SetMainMenu(makeMenu(ap, win)) //设置菜单栏
 	win.SetContent(makeTabs(ap, win))  //设置各选项卡的内容
 	win.CenterOnScreen()               //主窗口居中显示
 
 	win.ShowAndRun()
-}
-
-func (lo *FileSelectLayout) MinSize(objects []fyne.CanvasObject) fyne.Size {
-	minSize := fyne.NewSize(0, 0)
-	for _, obj := range objects {
-		minSize = minSize.Max(obj.MinSize())
-	}
-	return minSize
-}
-
-func (lo *FileSelectLayout) Layout(objects []fyne.CanvasObject, containerSize fyne.Size) {
-	if len(objects) != 2 {
-		return
-	}
-	entry := objects[0]
-	button := objects[1]
-
-	buttonMinWidth := button.MinSize().Width
-	button.Resize(button.MinSize())
-	button.Move(fyne.NewPos(containerSize.Width-buttonMinWidth, 0))
-
-	entry.Resize(fyne.NewSize(containerSize.Width-buttonMinWidth-10, entry.MinSize().Height))
-	entry.Move(fyne.NewPos(0, 0))
 }
 
 // makeMenu 用于创建菜单栏
@@ -165,6 +142,12 @@ func showSettings(ap fyne.App, win fyne.Window) {
 		temp.Key = s
 	}
 
+	//转存路径
+	photoPath := mywidget.NewFolderOpenWithEntry(func(s string) {
+		temp.PhotoPath = s
+	}, "默认为 旅行名称/pictures", win)
+	mywidget.SetEntryText(photoPath, config.PhotoPath) //还原设置
+
 	//是否删除原照片
 	deletePhotoRadio := widget.NewRadioGroup([]string{"是", "否"}, func(s string) {
 		if s == "是" { //自动保存
@@ -180,47 +163,14 @@ func showSettings(ap fyne.App, win fyne.Window) {
 		deletePhotoRadio.SetSelected("否")
 	}
 
-	//照片转存路径
-	photoPathEntry := widget.NewEntry()
-	photoPathEntry.OnChanged = func(s string) { //自动保存
-		temp.PhotoPath = s
-	}
-	photoPathEntry.Disable() //默认不转存
-	photoPathEntry.SetPlaceHolder("默认为 旅行名称/pictures")
-	photoPathEntry.SetText(config.PhotoPath) //还原设置
-
-	//点击选定转存路径，并显示在输入框中
-	photoPathButton := widget.NewButton("打开文件夹", func() {
-		dialog.ShowFolderOpen(func(list fyne.ListableURI, err error) {
-			//选择文件夹时出错
-			if err != nil {
-				dialog.ShowError(err, win)
-				return
-			}
-			//没有选择
-			if list == nil {
-				return
-			}
-			photoPathEntry.SetText(list.Path())
-		}, win)
-	})
-	photoPath := container.New(&FileSelectLayout{},
-		photoPathEntry,
-		photoPathButton,
-	)
-
 	//是否转存
 	movePhotoRadio := widget.NewRadioGroup([]string{"是", "否"}, func(s string) {
 		//改变转存路径选择控件的状态，临时保存设置
 		if s == "是" {
-			photoPathEntry.Enable()
-			photoPathButton.Enable()
-			deletePhotoRadio.Enable()
+			mywidget.Enable(photoPath)
 			temp.MovePhoto = true
 		} else {
-			photoPathEntry.Disable()
-			photoPathButton.Disable()
-			deletePhotoRadio.Disable()
+			mywidget.Disable(photoPath)
 			temp.MovePhoto = false
 		}
 	})
@@ -357,40 +307,10 @@ func makeTabs(ap fyne.App, win fyne.Window) *container.AppTabs {
 	)
 
 	/*********设置导入导出选项卡********/
-	inputPhotoEntry := widget.NewEntry()
 
-	inputPhotoButton := widget.NewButton("选择文件夹", func() {
-		dialog.ShowFolderOpen(func(list fyne.ListableURI, err error) {
-			//选择文件夹时出错
-			if err != nil {
-				dialog.ShowError(err, win)
-				return
-			}
-			//没有选择
-			if list == nil {
-				return
-			}
-			inputPhotoEntry.SetText(list.Path())
-		}, win)
-	})
-	inputPhoto := container.New(&FileSelectLayout{}, inputPhotoEntry, inputPhotoButton)
+	inputPhoto := mywidget.NewFolderOpenWithEntry(nil, "", win)
+	outputPath := mywidget.NewFolderOpenWithEntry(nil, "", win)
 
-	outputPathEntry := widget.NewEntry()
-	outputPathButton := widget.NewButton("选择文件夹", func() {
-		dialog.ShowFolderOpen(func(list fyne.ListableURI, err error) {
-			//选择文件夹时出错
-			if err != nil {
-				dialog.ShowError(err, win)
-				return
-			}
-			//没有选择
-			if list == nil {
-				return
-			}
-			outputPathEntry.SetText(list.Path())
-		}, win)
-	})
-	outputPath := container.New(&FileSelectLayout{}, outputPathEntry, outputPathButton)
 	IOputNextButton := widget.NewButton("下一步", func() {
 		tabs.Select(propertiesTab)
 	})
