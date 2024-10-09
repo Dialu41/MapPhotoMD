@@ -12,6 +12,7 @@ import (
 // UserConfig 用户配置数据
 type UserConfig struct {
 	Key            string                   `json:"key"`             //高德key
+	NotePath       string                   `json:note_path`         //ob库路径
 	MovePhoto      bool                     `json:"move_photo"`      //是否转存照片
 	PhotoPath      string                   `json:"photo_path"`      //转存路径
 	DeletePhoto    bool                     `json:"delete_Photo"`    //是否删除原照片

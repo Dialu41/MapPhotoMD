@@ -15,12 +15,14 @@ func showSettings(ap fyne.App, win fyne.Window, config *config.UserConfig) {
 	//临时保存设置，点击取消则不保存，反之则保存到config和文件中
 	temp := struct {
 		Key            string
+		NotePath       string
 		MovePhoto      bool
 		PhotoPath      string
 		DeletePhoto    bool
 		SaveProperties bool
 	}{
 		Key:            config.Key,
+		NotePath:       config.NotePath,
 		MovePhoto:      config.MovePhoto,
 		PhotoPath:      config.PhotoPath,
 		DeletePhoto:    config.DeletePhoto,
@@ -33,6 +35,14 @@ func showSettings(ap fyne.App, win fyne.Window, config *config.UserConfig) {
 	gdKeyEntry.OnChanged = func(s string) { //自动保存
 		temp.Key = s
 	}
+
+	//ob库路径
+	notePathEntry := widget.NewEntry()
+	notePathEntry.SetText(config.NotePath) //还原设置
+	notePathEntry.OnChanged = func(s string) {
+		temp.NotePath = s
+	}
+	notePathEntry.SetPlaceHolder("旅行记录在Ob库下的路径，例：生活/游记")
 
 	//转存路径
 	photoPath := mywidget.NewFolderOpenWithEntry(func(s string) {
@@ -94,6 +104,7 @@ func showSettings(ap fyne.App, win fyne.Window, config *config.UserConfig) {
 
 	items := []*widget.FormItem{
 		widget.NewFormItem("高德Key", gdKeyEntry),
+		widget.NewFormItem("Ob库路径", notePathEntry),
 		widget.NewFormItem("是否转存照片", movePhotoRadio),
 		widget.NewFormItem("照片转存路径", photoPath),
 		widget.NewFormItem("是否删除原照片", deletePhotoRadio),
@@ -107,6 +118,7 @@ func showSettings(ap fyne.App, win fyne.Window, config *config.UserConfig) {
 		}
 		//用户选择保存，则保存设置到config.json
 		config.Key = temp.Key
+		config.NotePath = temp.NotePath
 		config.MovePhoto = temp.MovePhoto
 		config.PhotoPath = temp.PhotoPath
 		config.DeletePhoto = temp.DeletePhoto

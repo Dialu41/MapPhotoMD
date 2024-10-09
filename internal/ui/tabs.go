@@ -2,6 +2,7 @@ package ui
 
 import (
 	"MapPhotoMD/internal/config"
+	"MapPhotoMD/internal/service"
 	"MapPhotoMD/mywidget"
 	"time"
 
@@ -12,24 +13,46 @@ import (
 	xWidget "fyne.io/x/fyne/widget"
 )
 
-// proIndex 保存所有property控件的地址
-var proIndex []*mywidget.Property
+// tabs 所有选项卡的指针，用于跳转选项卡
+var (
+	travelData    *service.TravelData
+	tabs          *container.AppTabs
+	travelTab     *container.TabItem
+	IOputTab      *container.TabItem
+	propertiesTab *container.TabItem
+)
 
 // makeTabs 创建主窗口的选项卡
 func MakeTabs(ap fyne.App, win fyne.Window, cfg *config.UserConfig) *container.AppTabs {
-	//tabs 所有选项卡的指针，用于跳转选项卡
-	var tabs *container.AppTabs
-	var (
-		travelTab     *container.TabItem
-		IOputTab      *container.TabItem
-		propertiesTab *container.TabItem
+	travelData = service.NewTravelData()
+
+	travelTab = container.NewTabItem("旅行信息", makeTravelTabContent())
+	IOputTab = container.NewTabItem("导入导出设置", makeIOputTabContent(win))
+	propertiesTab = container.NewTabItem("添加属性", makePropertiesTabContent(ap, cfg))
+	tabs = container.NewAppTabs(
+		travelTab,
+		IOputTab,
+		propertiesTab,
 	)
 
-	/********设置旅行信息选项卡*********/
+	//选项卡靠左
+	tabs.SetTabLocation(container.TabLocationLeading)
+
+	return tabs
+}
+
+// makeTravelTabContent 创建旅行名称和旅行日期输入选项卡的内容
+func makeTravelTabContent() *fyne.Container {
 	travelName := widget.NewEntry()
+	travelName.OnChanged = func(s string) {
+		travelData.TravelName = s
+	}
 	travelName.SetPlaceHolder("例：故宫一日游")
 
 	travelDate := widget.NewEntry()
+	travelDate.OnChanged = func(s string) {
+		travelData.TravelDate = s
+	}
 	travelDate.SetPlaceHolder("点击日历，选择旅行开始的第一天")
 
 	//日历，点击日期时将日期赋值给输入框
@@ -43,7 +66,7 @@ func MakeTabs(ap fyne.App, win fyne.Window, cfg *config.UserConfig) *container.A
 	})
 	travelNextButton.Importance = widget.HighImportance
 
-	travelTabContent := container.NewVBox(
+	return container.NewVBox(
 		widget.NewForm(
 			widget.NewFormItem("旅行名称", travelName),
 			widget.NewFormItem("旅行日期", travelDate),
@@ -57,20 +80,27 @@ func MakeTabs(ap fyne.App, win fyne.Window, cfg *config.UserConfig) *container.A
 			layout.NewSpacer(),
 		),
 	)
+}
 
-	/*********设置导入导出选项卡********/
-
-	inputPhoto := mywidget.NewFolderOpenWithEntry(nil, "", win)
-	outputPath := mywidget.NewFolderOpenWithEntry(nil, "", win)
+// makeIOputTabContent 创建导入导出选项卡的内容
+func makeIOputTabContent(win fyne.Window) *fyne.Container {
+	inputPhoto := mywidget.NewFolderOpenWithEntry(func(s string) {
+		travelData.InputPath = s
+	}, "", win)
+	outputPath := mywidget.NewFolderOpenWithEntry(func(s string) {
+		travelData.OutputPath = s
+	}, "", win)
 
 	IOputNextButton := widget.NewButton("下一步", func() {
 		tabs.Select(propertiesTab)
 	})
 	IOputNextButton.Importance = widget.HighImportance
+
 	IOputBackButton := widget.NewButton("上一步", func() {
 		tabs.Select(travelTab)
 	})
-	IOputTabContent := container.NewVBox(
+
+	return container.NewVBox(
 		widget.NewForm(
 			widget.NewFormItem("导入照片", inputPhoto),
 			widget.NewFormItem("导出到Ob库", outputPath)),
@@ -84,19 +114,21 @@ func MakeTabs(ap fyne.App, win fyne.Window, cfg *config.UserConfig) *container.A
 			layout.NewSpacer(),
 		),
 	)
+}
 
-	/*********设置添加属性选项卡********/
-	//属性类型及其对应的默认属性名称
-	type2Name := map[string]string{
-		"标签":  "tags",
-		"别名":  "aliases",
-		"样式":  "cssclasses",
-		"文本":  "",
-		"列表":  "",
-		"数字":  "",
-		"复选框": "",
-		"日期":  "",
+func makePropertiesTabContent(ap fyne.App, cfg *config.UserConfig) *fyne.Container {
+	//选择的属性类型
+	types := []string{
+		mywidget.ProType_Tag,
+		mywidget.ProType_Aliases,
+		mywidget.ProType_css,
+		mywidget.ProType_Text,
+		mywidget.ProType_List,
+		mywidget.ProType_Num,
+		mywidget.ProType_Check,
+		mywidget.ProType_Date,
 	}
+
 	//默认属性类型
 	defaultType := "文本"
 
@@ -105,8 +137,8 @@ func MakeTabs(ap fyne.App, win fyne.Window, cfg *config.UserConfig) *container.A
 
 	//还原保存的属性设置
 	for _, pro := range cfg.Properties {
-		proIndex = append(proIndex, mywidget.NewProperty(type2Name, pro.Type, pro.Name, pro.Value))
-		proContainer.Add(proIndex[len(proIndex)-1])
+		travelData.ProIndex = append(travelData.ProIndex, mywidget.NewProperty(types, pro.Type, pro.Name, pro.Value))
+		proContainer.Add(travelData.ProIndex[len(travelData.ProIndex)-1])
 	}
 
 	//点击开始生成旅行记录文件及文件夹，如设置保存属性，则与设置项一并保存到config.json
@@ -115,7 +147,7 @@ func MakeTabs(ap fyne.App, win fyne.Window, cfg *config.UserConfig) *container.A
 		cfg.Properties = cfg.Properties[:0]
 		//按照用户设置，选择是否保存属性
 		if cfg.SaveProperties {
-			for _, pIndex := range proIndex {
+			for _, pIndex := range travelData.ProIndex {
 				proData := pIndex.GetPropertyData()
 				if proData.Name != "" { //未指定属性名称的不保存
 					cfg.Properties = append(cfg.Properties, proData)
@@ -123,6 +155,7 @@ func MakeTabs(ap fyne.App, win fyne.Window, cfg *config.UserConfig) *container.A
 			}
 		}
 		cfg.SaveConfigFile(ap)
+		travelData.GenerateMD(cfg)
 	})
 	proNextButton.Importance = widget.DangerImportance
 
@@ -133,21 +166,21 @@ func MakeTabs(ap fyne.App, win fyne.Window, cfg *config.UserConfig) *container.A
 
 	//点击添加一条属性
 	addProButton := widget.NewButton("添加属性", func() {
-		proIndex = append(proIndex, mywidget.NewProperty(type2Name, defaultType, "", ""))
-		proContainer.Add(proIndex[len(proIndex)-1])
+		travelData.ProIndex = append(travelData.ProIndex, mywidget.NewProperty(types, defaultType, "", ""))
+		proContainer.Add(travelData.ProIndex[len(travelData.ProIndex)-1])
 	})
 	addProButton.Importance = widget.HighImportance
 
 	//点击删除一条属性，少于一条时无效
 	deleteProButton := widget.NewButton("删除属性", func() {
-		length := len(proIndex)
+		length := len(travelData.ProIndex)
 		if length > 0 {
-			proContainer.Remove(proIndex[length-1])
-			proIndex = proIndex[:length-1]
+			proContainer.Remove(travelData.ProIndex[length-1])
+			travelData.ProIndex = travelData.ProIndex[:length-1]
 		}
 	})
 
-	propertiesTabContent := container.NewVBox(
+	return container.NewVBox(
 		proContainer,
 		//增删属性按钮居中
 		container.NewHBox(
@@ -165,18 +198,4 @@ func MakeTabs(ap fyne.App, win fyne.Window, cfg *config.UserConfig) *container.A
 			layout.NewSpacer(),
 		),
 	)
-
-	travelTab = container.NewTabItem("旅行信息", travelTabContent)
-	IOputTab = container.NewTabItem("导入导出设置", IOputTabContent)
-	propertiesTab = container.NewTabItem("添加属性", propertiesTabContent)
-	tabs = container.NewAppTabs(
-		travelTab,
-		IOputTab,
-		propertiesTab,
-	)
-
-	//选项卡靠左
-	tabs.SetTabLocation(container.TabLocationLeading)
-
-	return tabs
 }

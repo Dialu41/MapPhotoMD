@@ -10,6 +10,8 @@ import (
 type FolderOpenWithEntry struct {
 	widget.BaseWidget
 	feContainer *fyne.Container
+	entry       *widget.Entry
+	button      *widget.Button
 }
 
 type FolderOpenWithEntryLayout struct{}
@@ -38,8 +40,11 @@ func (lo *FolderOpenWithEntryLayout) Layout(objects []fyne.CanvasObject, contain
 }
 
 func NewFolderOpenWithEntry(entryChanged func(s string), entryPlaceHolder string, win fyne.Window) *FolderOpenWithEntry {
-	entry := widget.NewEntry()
-	button := widget.NewButton("打开文件夹", func() {
+	t := &FolderOpenWithEntry{}
+	t.ExtendBaseWidget(t)
+
+	t.entry = widget.NewEntry()
+	t.button = widget.NewButton("打开文件夹", func() {
 		dialog.ShowFolderOpen(func(list fyne.ListableURI, err error) {
 			//选择文件夹时出错
 			if err != nil {
@@ -51,16 +56,14 @@ func NewFolderOpenWithEntry(entryChanged func(s string), entryPlaceHolder string
 				return
 			}
 			//选择的文件夹路径显示在输入框中
-			entry.SetText(list.Path())
+			t.entry.SetText(list.Path())
 		}, win)
 	})
 
-	entry.OnChanged = entryChanged
-	entry.SetPlaceHolder(entryPlaceHolder)
+	t.entry.OnChanged = entryChanged
+	t.entry.SetPlaceHolder(entryPlaceHolder)
 
-	t := &FolderOpenWithEntry{}
-	t.ExtendBaseWidget(t)
-	t.feContainer = container.New(&FolderOpenWithEntryLayout{}, entry, button)
+	t.feContainer = container.New(&FolderOpenWithEntryLayout{}, t.entry, t.button)
 
 	return t
 }
@@ -70,32 +73,15 @@ func (t *FolderOpenWithEntry) CreateRenderer() fyne.WidgetRenderer {
 }
 
 func (t *FolderOpenWithEntry) SetEntryText(s string) {
-	for _, obj := range t.feContainer.Objects {
-		switch v := obj.(type) {
-		case *widget.Entry:
-			v.SetText(s)
-		}
-	}
+	t.entry.SetText(s)
 }
 
 func (t *FolderOpenWithEntry) Enable() {
-	for _, obj := range t.feContainer.Objects {
-		switch v := obj.(type) {
-		case *widget.Entry:
-			v.Enable()
-		case *widget.Button:
-			v.Enable()
-		}
-	}
+	t.button.Enable()
+	t.entry.Enable()
 }
 
 func (t *FolderOpenWithEntry) Disable() {
-	for _, obj := range t.feContainer.Objects {
-		switch v := obj.(type) {
-		case *widget.Entry:
-			v.Disable()
-		case *widget.Button:
-			v.Disable()
-		}
-	}
+	t.button.Disable()
+	t.entry.Disable()
 }
