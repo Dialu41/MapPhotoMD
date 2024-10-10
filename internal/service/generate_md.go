@@ -60,9 +60,9 @@ func (travelData *TravelData) GenerateMD(cfg *config.UserConfig) []string {
 	//创建标记点文件及其文件夹
 	travelData.makeMarkers(basePath)
 	//转存照片
-
+	travelData.movePhoto(basePath, cfg)
 	//删除原照片
-
+	travelData.delatePhoto(cfg)
 	//返回无法转换的照片名
 	return pData.invalidPhotos
 }
@@ -211,5 +211,38 @@ location: [%f,%f]
 		file.WriteString(markerStr)
 
 		file.Close()
+	}
+}
+
+func (t *TravelData) movePhoto(basePath string, cfg *config.UserConfig) {
+	if cfg.MovePhoto {
+		var copyPath string
+		_, err := os.Stat(cfg.PhotoPath)
+		if err != nil {
+			copyPath = filepath.Join(basePath, "pictures")
+			os.MkdirAll(copyPath, 0755)
+		} else {
+			copyPath = cfg.PhotoPath
+		}
+		for _, fileName := range pData.validPhotos {
+			source, _ := os.Open(filepath.Join(t.InputPath, fileName))
+			copy, _ := os.Create(filepath.Join(copyPath, fileName))
+
+			io.Copy(copy, source)
+			copy.Sync()
+
+			copy.Close()
+			source.Close()
+		}
+	}
+}
+
+func (t *TravelData) delatePhoto(cfg *config.UserConfig) {
+	if cfg.MovePhoto {
+		if cfg.DeletePhoto {
+			for _, fileName := range pData.validPhotos {
+				os.Remove(filepath.Join(t.InputPath, fileName))
+			}
+		}
 	}
 }

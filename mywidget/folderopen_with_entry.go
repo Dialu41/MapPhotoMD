@@ -85,6 +85,10 @@ func (t *FolderOpenWithEntry) SetEntryText(s string) {
 	t.entry.SetText(s)
 }
 
+func (t *FolderOpenWithEntry) GetEntryText() string {
+	return t.entry.Text
+}
+
 func (t *FolderOpenWithEntry) Enable() {
 	t.button.Enable()
 	t.entry.Enable()

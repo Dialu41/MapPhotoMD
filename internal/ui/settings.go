@@ -117,6 +117,14 @@ func showSettings(ap fyne.App, win fyne.Window, config *config.UserConfig) {
 			return
 		}
 		//用户选择保存，则保存设置到config.json
+		if temp.MovePhoto && photoPath.GetEntryText() != "" && !photoPath.GetValid() {
+			ap.SendNotification(&fyne.Notification{
+				Title:   "错误",
+				Content: "设置保存失败\n转存路径错误，请重新设置并保存",
+			})
+			temp.PhotoPath = ""
+		}
+
 		config.Key = temp.Key
 		config.NotePath = temp.NotePath
 		config.MovePhoto = temp.MovePhoto
@@ -124,6 +132,7 @@ func showSettings(ap fyne.App, win fyne.Window, config *config.UserConfig) {
 		config.DeletePhoto = temp.DeletePhoto
 		config.SaveProperties = temp.SaveProperties
 		config.SaveConfigFile(ap)
+
 	}, win)
 	settingDialog.Resize(fyne.NewSize(500, settingDialog.MinSize().Height))
 	settingDialog.Show()
