@@ -1,6 +1,10 @@
 package mywidget
 
 import (
+	"errors"
+	"regexp"
+	"time"
+
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/widget"
@@ -19,7 +23,7 @@ const (
 )
 
 // 属性类型与默认属性名称的映射表
-var typeMap = map[string]string{
+var type2NameMap = map[string]string{
 	ProType_Tag:     "tags",
 	ProType_Aliases: "aliases",
 	ProType_css:     "cssclasses",
@@ -28,6 +32,29 @@ var typeMap = map[string]string{
 	ProType_Num:     "",
 	ProType_Check:   "",
 	ProType_Date:    "",
+}
+
+// 属性类型与属性值提示词的映射表
+var type2PromptMap = map[string]string{
+	ProType_Tag:     "tag1,tag2...",
+	ProType_Aliases: "aliases1,aliases2...",
+	ProType_css:     "css1,css2...",
+	ProType_Text:    "任意文本",
+	ProType_List:    "list1,list2...",
+	ProType_Num:     "只能是数字",
+	ProType_Check:   "true/false",
+	ProType_Date:    "YYYY-MM-DD",
+}
+
+var type2ValidatorMap = map[string]func(s string) error{
+	ProType_Tag:     validator_default,
+	ProType_Aliases: validator_default,
+	ProType_css:     validator_default,
+	ProType_Text:    func(s string) error { return nil },
+	ProType_List:    validator_default,
+	ProType_Num:     validator_num,
+	ProType_Check:   validator_bool,
+	ProType_Date:    validator_data,
 }
 
 type Property struct {
@@ -73,6 +100,41 @@ func (lo *PropertyLayout) Layout(objects []fyne.CanvasObject, containerSize fyne
 	proValue.Move(fyne.NewPos(140+(containerSize.Width-140)/3, 0))
 }
 
+func validator_default(s string) error {
+	pat := "^[^,]+(,[^,]+)*$"
+	re := regexp.MustCompile(pat)
+	if re.MatchString(s) {
+		return nil
+	}
+	return errors.New("")
+}
+
+func validator_num(s string) error {
+	pat := "^\\d+$"
+	re := regexp.MustCompile(pat)
+	if re.MatchString(s) {
+		return nil
+	}
+	return errors.New("")
+}
+
+func validator_data(s string) error {
+	pat := "^\\d{4}-\\d{2}-\\d{2}$"
+	re := regexp.MustCompile(pat)
+	_, err := time.Parse("2006-01-02", s)
+	if re.MatchString(s) && err == nil {
+		return nil
+	}
+	return errors.New("")
+}
+
+func validator_bool(s string) error {
+	if s == "true" || s == "false" {
+		return nil
+	}
+	return errors.New("")
+}
+
 // NewProperty 创建组合控件Property，用于输入旅行记录的单条YAML属性。
 // 传入参数：type2Name 属性类型及其对应的默认属性名称；其余为子控件的默认值。
 // 布局：水平排列。属性类型控件固定宽度，属性名称控件占剩余宽度的1/3，属性值控件占剩余宽度2/3。控件间固定间隔10，控件到边缘固定距离5。
@@ -85,17 +147,17 @@ func NewProperty(types []string, defaultType string, defaultName string, default
 	t.ProName.SetText(defaultName)
 
 	t.ProValue = widget.NewEntry()
-	t.ProValue.SetPlaceHolder("属性值")
 	t.ProValue.SetText(defaultValue)
-	//根据属性类型，对输入内容进行检验
 
 	t.ProType = widget.NewSelect(types, func(s string) {
 		//选定属性类型时，自动更改属性名称，默认属性名称为空时不更改
-		if typeMap[s] != "" {
-			t.ProName.SetText(typeMap[s])
+		if type2NameMap[s] != "" {
+			t.ProName.SetText(type2NameMap[s])
 		}
 		//根据选定的属性类型，修改属性值输入框的提示词
+		t.ProValue.SetPlaceHolder(type2PromptMap[s])
 
+		t.ProValue.Validator = type2ValidatorMap[s]
 	})
 	//设置默认属性类型
 	t.ProType.SetSelected(defaultType)
@@ -127,4 +189,8 @@ func (t *Property) GetPropertyName() string {
 
 func (t *Property) GetPropertyValue() string {
 	return t.ProValue.Text
+}
+
+func (t *Property) GetValid() bool {
+	return t.ProValue.Validate() == nil
 }

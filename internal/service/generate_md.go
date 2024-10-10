@@ -49,7 +49,7 @@ func NewTravelData() *TravelData {
 	return &TravelData{}
 }
 
-func (travelData *TravelData) GenerateMD(cfg *config.UserConfig) {
+func (travelData *TravelData) GenerateMD(cfg *config.UserConfig) []string {
 	basePath := filepath.Join(travelData.OutputPath, travelData.TravelName)
 	os.MkdirAll(basePath, 0755)
 
@@ -61,6 +61,10 @@ func (travelData *TravelData) GenerateMD(cfg *config.UserConfig) {
 	travelData.makeMarkers(basePath)
 	//转存照片
 
+	//删除原照片
+
+	//返回无法转换的照片名
+	return pData.invalidPhotos
 }
 
 // makeTravelNote 创建旅行记录md文件
@@ -124,14 +128,14 @@ func (travelData *TravelData) decodeEXIF(cfg *config.UserConfig) {
 				x, e := exif.Decode(file)
 				if e != nil {
 					pData.invalidPhotos = append(pData.invalidPhotos, fileName)
-					return e
+					return nil
 				}
 
 				raw := location{}
 				raw.lat, raw.long, e = x.LatLong()
 				if e != nil || raw.lat == 0 || raw.long == 0 {
 					pData.invalidPhotos = append(pData.invalidPhotos, fileName)
-					return e
+					return nil
 				}
 				pData.rawLocation = append(pData.rawLocation, raw)
 				pData.validPhotos = append(pData.validPhotos, fileName)
@@ -139,12 +143,14 @@ func (travelData *TravelData) decodeEXIF(cfg *config.UserConfig) {
 				time, e := x.DateTime()
 				if e != nil {
 					pData.date = append(pData.date, "")
+					return nil
 				}
 				pData.date = append(pData.date, time.Format("2006-01-02 15:04:05"))
 
 				camModel, e := x.Get(exif.Model)
 				if e != nil {
 					pData.device = append(pData.device, "")
+					return nil
 				}
 				pData.device = append(pData.device, strings.Trim(camModel.String(), `"`))
 			}

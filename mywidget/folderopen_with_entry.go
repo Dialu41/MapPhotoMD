@@ -1,6 +1,8 @@
 package mywidget
 
 import (
+	"os"
+
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/dialog"
@@ -62,6 +64,13 @@ func NewFolderOpenWithEntry(entryChanged func(s string), entryPlaceHolder string
 
 	t.entry.OnChanged = entryChanged
 	t.entry.SetPlaceHolder(entryPlaceHolder)
+	t.entry.Validator = func(s string) error {
+		_, err := os.Stat(s)
+		if err == nil {
+			return nil
+		}
+		return err
+	}
 
 	t.feContainer = container.New(&FolderOpenWithEntryLayout{}, t.entry, t.button)
 
@@ -84,4 +93,8 @@ func (t *FolderOpenWithEntry) Enable() {
 func (t *FolderOpenWithEntry) Disable() {
 	t.button.Disable()
 	t.entry.Disable()
+}
+
+func (t *FolderOpenWithEntry) GetValid() bool {
+	return t.entry.Validate() == nil
 }
