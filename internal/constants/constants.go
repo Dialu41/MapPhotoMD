@@ -4,4 +4,4 @@ package constants
 const AppVersion = "v1.0"
 
 // githubURL 项目github仓库链接
-const GithubURL = ""
+const GithubURL = "https://github.com/Dialu41/MapPhotoMD"
