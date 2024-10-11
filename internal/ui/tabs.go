@@ -16,15 +16,15 @@ import (
 	xWidget "fyne.io/x/fyne/widget"
 )
 
-// tabs 所有选项卡的指针，用于跳转选项卡
 var (
-	travelData    *service.TravelData
-	tabs          *container.AppTabs
-	travelTab     *container.TabItem
-	IOputTab      *container.TabItem
-	propertiesTab *container.TabItem
+	travelData    *service.TravelData //本次旅行记录的相关数据
+	tabs          *container.AppTabs  //选项卡组的指针
+	travelTab     *container.TabItem  //旅行信息选项卡
+	IOputTab      *container.TabItem  //导入导出设置选项卡
+	propertiesTab *container.TabItem  //属性设置选项卡
 )
 
+// 前两个选项的输入框指针，用于最后检查输入是否合法
 var (
 	travelName *widget.Entry
 	travelDate *widget.Entry
@@ -32,13 +32,14 @@ var (
 	outputPath *mywidget.FolderOpenWithEntry
 )
 
-// makeTabs 创建主窗口的选项卡
+// makeTabs 创建选项卡组
 func MakeTabs(ap fyne.App, win fyne.Window, cfg *config.UserConfig) *container.AppTabs {
 	travelData = service.NewTravelData()
 
 	travelTab = container.NewTabItem("旅行信息", makeTravelTabContent(win))
 	IOputTab = container.NewTabItem("导入导出设置", makeIOputTabContent(win))
 	propertiesTab = container.NewTabItem("添加属性", makePropertiesTabContent(ap, win, cfg))
+
 	tabs = container.NewAppTabs(
 		travelTab,
 		IOputTab,
@@ -51,14 +52,15 @@ func MakeTabs(ap fyne.App, win fyne.Window, cfg *config.UserConfig) *container.A
 	return tabs
 }
 
-// makeTravelTabContent 创建旅行名称和旅行日期输入选项卡的内容
+// makeTravelTabContent 创建旅行信息选项卡的内容
 func makeTravelTabContent(win fyne.Window) *fyne.Container {
+	//旅行名称输入框
 	travelName = widget.NewEntry()
 	travelName.OnChanged = func(s string) {
 		travelData.TravelName = s
 	}
 	travelName.SetPlaceHolder("例：故宫一日游")
-	travelName.Validator = func(s string) error {
+	travelName.Validator = func(s string) error { //检查输入是否为空
 		if s == "" {
 			return errors.New("")
 		} else {
@@ -66,12 +68,13 @@ func makeTravelTabContent(win fyne.Window) *fyne.Container {
 		}
 	}
 
+	//旅行日期文本框
 	travelDate = widget.NewEntry()
 	travelDate.OnChanged = func(s string) {
 		travelData.TravelDate = s
 	}
 	travelDate.SetPlaceHolder("点击日历，选择旅行开始的第一天")
-	travelDate.Validator = func(s string) error {
+	travelDate.Validator = func(s string) error { //检查是否是合法的日期
 		pat := "^\\d{4}-\\d{2}-\\d{2}$"
 		re := regexp.MustCompile(pat)
 		_, err := time.Parse("2006-01-02", s)
@@ -86,8 +89,9 @@ func makeTravelTabContent(win fyne.Window) *fyne.Container {
 		travelDate.SetText(t.Format("2006-01-02"))
 	})
 
-	//跳转下一个选项卡
+	//点击跳转下一个选项卡
 	travelNextButton := widget.NewButton("下一步", func() {
+		//检查输入合法性，合法则跳转，否则不跳转并提示
 		if travelDate.Validate() == nil && travelName.Validate() == nil {
 			tabs.Select(IOputTab)
 		} else {
@@ -114,13 +118,17 @@ func makeTravelTabContent(win fyne.Window) *fyne.Container {
 
 // makeIOputTabContent 创建导入导出选项卡的内容
 func makeIOputTabContent(win fyne.Window) *fyne.Container {
+	//导入路径文本框
 	inputPath = mywidget.NewFolderOpenWithEntry(func(s string) {
 		travelData.InputPath = s
 	}, "", win)
+
+	//导出路径文本框
 	outputPath = mywidget.NewFolderOpenWithEntry(func(s string) {
 		travelData.OutputPath = s
 	}, "", win)
 
+	//点击跳转下一个选项卡
 	IOputNextButton := widget.NewButton("下一步", func() {
 		if inputPath.GetValid() && outputPath.GetValid() {
 			tabs.Select(propertiesTab)
@@ -130,6 +138,7 @@ func makeIOputTabContent(win fyne.Window) *fyne.Container {
 	})
 	IOputNextButton.Importance = widget.HighImportance
 
+	//点击返回上一个选项卡
 	IOputBackButton := widget.NewButton("上一步", func() {
 		tabs.Select(travelTab)
 	})
@@ -150,8 +159,9 @@ func makeIOputTabContent(win fyne.Window) *fyne.Container {
 	)
 }
 
+// makePropertiesTabContent 创建属性设置选项卡的内容
 func makePropertiesTabContent(ap fyne.App, win fyne.Window, cfg *config.UserConfig) *fyne.Container {
-	//选择的属性类型
+	//属性控件可选的属性类型
 	types := []string{
 		mywidget.ProType_Tag,
 		mywidget.ProType_Aliases,
@@ -163,9 +173,6 @@ func makePropertiesTabContent(ap fyne.App, win fyne.Window, cfg *config.UserConf
 		mywidget.ProType_Date,
 	}
 
-	//默认属性类型
-	defaultType := "文本"
-
 	//所有属性控件纵向排列
 	proContainer := container.NewVBox()
 
@@ -175,8 +182,9 @@ func makePropertiesTabContent(ap fyne.App, win fyne.Window, cfg *config.UserConf
 		proContainer.Add(travelData.ProIndex[len(travelData.ProIndex)-1])
 	}
 
-	//点击开始生成旅行记录文件及文件夹，如设置保存属性，则与设置项一并保存到config.json
+	//点击开始生成旅行记录文件及文件夹
 	proNextButton := widget.NewButton("开始生成", func() {
+		//检查前两个选项卡输入是否合法
 		if travelName.Validate() != nil || travelDate.Validate() != nil || !inputPath.GetValid() || !outputPath.GetValid() {
 			dialog.ShowError(errors.New("旅行信息、导入导出设置错误或未填写"), win)
 			return
@@ -199,9 +207,12 @@ func makePropertiesTabContent(ap fyne.App, win fyne.Window, cfg *config.UserConf
 				}
 			}
 		}
+		//保存属性设置
 		cfg.SaveConfigFile(ap)
+
 		invalidPhotos := travelData.GenerateMD(cfg)
 		if len(invalidPhotos) != 0 {
+			//显示无法转换的照片
 			str := "无法转换的照片如下，请检查其是否存在经纬度信息：\n"
 			for _, p := range invalidPhotos {
 				str = str + p + "\n"
@@ -220,7 +231,7 @@ func makePropertiesTabContent(ap fyne.App, win fyne.Window, cfg *config.UserConf
 
 	//点击添加一条属性
 	addProButton := widget.NewButton("添加属性", func() {
-		travelData.ProIndex = append(travelData.ProIndex, mywidget.NewProperty(types, defaultType, "", ""))
+		travelData.ProIndex = append(travelData.ProIndex, mywidget.NewProperty(types, "文本", "", ""))
 		proContainer.Add(travelData.ProIndex[len(travelData.ProIndex)-1])
 	})
 	addProButton.Importance = widget.HighImportance

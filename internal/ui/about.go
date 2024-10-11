@@ -10,7 +10,7 @@ import (
 	"fyne.io/fyne/v2/widget"
 )
 
-// showAbout 显示关于
+// showAbout 显示关于界面
 func showAbout(ap fyne.App, win fyne.Window) {
 	contactButton := widget.NewButton("我的邮箱", func() {
 		win.Clipboard().SetContent("1165011707@qq.com")
@@ -33,7 +33,11 @@ func showAbout(ap fyne.App, win fyne.Window) {
 		widget.NewLabel("版权信息"), widget.NewLabel("Copyright © 2024 黄嚄嚄."),
 		widget.NewLabel("联系开发者"), container.NewHBox(contactButton, blogButton),
 		widget.NewLabel("开源协议"), container.NewHBox(widget.NewLabel("本软件使用MIT协议发行"), githubButton),
-		widget.NewLabel("鸣谢"), container.NewGridWithColumns(2,
+		widget.NewLabel("鸣谢"), container.NewHBox(
+			widget.NewButton("StarAire", func() {
+				u, _ := url.Parse(("https://sspai.com/post/80578"))
+				_ = ap.OpenURL(u)
+			}),
 			widget.NewButton("Go", func() {
 				u, _ := url.Parse(("https://github.com/golang/go"))
 				_ = ap.OpenURL(u)
@@ -41,7 +45,12 @@ func showAbout(ap fyne.App, win fyne.Window) {
 			widget.NewButton("Fyne", func() {
 				u, _ := url.Parse("https://github.com/fyne-io/fyne")
 				_ = ap.OpenURL(u)
-			})),
+			}),
+			widget.NewButton("Go-EXIF", func() {
+				u, _ := url.Parse("https://github.com/rwcarlsen/goexif")
+				_ = ap.OpenURL(u)
+			}),
+		),
 	)
 	dialog.ShowCustom("关于", "关闭", content, win)
 }

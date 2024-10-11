@@ -20,6 +20,7 @@ type UserConfig struct {
 	Properties     []*mywidget.PropertyData `json:"properties"`      //旅行记录YAML属性
 }
 
+// NewUserConfig 创建用户配置结构体
 func NewUserConfig() *UserConfig {
 	return &UserConfig{}
 }
@@ -64,7 +65,7 @@ func (config *UserConfig) ReadConfigFile(ap fyne.App) {
 	}
 }
 
-// SaveConfigFile 保存设置到config.json
+// SaveConfigFile 保存配置到config.json
 func (config *UserConfig) SaveConfigFile(ap fyne.App) {
 	jsonData, err := json.Marshal(config)
 	if err != nil {

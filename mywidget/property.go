@@ -46,6 +46,7 @@ var type2PromptMap = map[string]string{
 	ProType_Date:    "YYYY-MM-DD",
 }
 
+// 属性类型与属性值文本框检查器的映射表
 var type2ValidatorMap = map[string]func(s string) error{
 	ProType_Tag:     validator_default,
 	ProType_Aliases: validator_default,
@@ -60,9 +61,9 @@ var type2ValidatorMap = map[string]func(s string) error{
 type Property struct {
 	widget.BaseWidget
 	ProContainer *fyne.Container
-	ProType      *widget.Select
-	ProName      *widget.Entry
-	ProValue     *widget.Entry
+	ProType      *widget.Select //属性类型下拉菜单
+	ProName      *widget.Entry  //属性名称文本框
+	ProValue     *widget.Entry  //属性值文本框
 }
 
 // PropertyData 属性控件的数据结构体
@@ -82,6 +83,7 @@ func (lo *PropertyLayout) MinSize(objects []fyne.CanvasObject) fyne.Size {
 	return minSize
 }
 
+// Layout 属性类型、名称、值控件依次水平放置。属性类型固定宽度，属性名称与属性值按1:2分配剩余宽度
 func (lo *PropertyLayout) Layout(objects []fyne.CanvasObject, containerSize fyne.Size) {
 	if len(objects) != 3 {
 		return
@@ -100,6 +102,7 @@ func (lo *PropertyLayout) Layout(objects []fyne.CanvasObject, containerSize fyne
 	proValue.Move(fyne.NewPos(140+(containerSize.Width-140)/3, 0))
 }
 
+// validator_default 默认检查器。文本格式不是“item1,item2,item3”时返回error
 func validator_default(s string) error {
 	pat := "^[^,]+(,[^,]+)*$"
 	re := regexp.MustCompile(pat)
@@ -109,6 +112,7 @@ func validator_default(s string) error {
 	return errors.New("")
 }
 
+// validator_num 数字检查器。文本格式不是连续数字时返回error
 func validator_num(s string) error {
 	pat := "^\\d+$"
 	re := regexp.MustCompile(pat)
@@ -118,6 +122,7 @@ func validator_num(s string) error {
 	return errors.New("")
 }
 
+// validator_data 日期检查器。文本格式不是合法日期时返回error
 func validator_data(s string) error {
 	pat := "^\\d{4}-\\d{2}-\\d{2}$"
 	re := regexp.MustCompile(pat)
@@ -128,6 +133,7 @@ func validator_data(s string) error {
 	return errors.New("")
 }
 
+// validator_bool 布尔值检查器。文本不为true或false时返回error
 func validator_bool(s string) error {
 	if s == "true" || s == "false" {
 		return nil
@@ -135,9 +141,8 @@ func validator_bool(s string) error {
 	return errors.New("")
 }
 
-// NewProperty 创建组合控件Property，用于输入旅行记录的单条YAML属性。
-// 传入参数：type2Name 属性类型及其对应的默认属性名称；其余为子控件的默认值。
-// 布局：水平排列。属性类型控件固定宽度，属性名称控件占剩余宽度的1/3，属性值控件占剩余宽度2/3。控件间固定间隔10，控件到边缘固定距离5。
+// NewProperty 创建属性控件。
+// 传入参数：types 属性类型下拉菜单可选项；其余为子控件的默认值。
 func NewProperty(types []string, defaultType string, defaultName string, defaultValue string) *Property {
 	t := &Property{}
 	t.ExtendBaseWidget(t)
@@ -154,9 +159,8 @@ func NewProperty(types []string, defaultType string, defaultName string, default
 		if type2NameMap[s] != "" {
 			t.ProName.SetText(type2NameMap[s])
 		}
-		//根据选定的属性类型，修改属性值输入框的提示词
+		//根据选定的属性类型，修改属性值输入框的提示词和检查器
 		t.ProValue.SetPlaceHolder(type2PromptMap[s])
-
 		t.ProValue.Validator = type2ValidatorMap[s]
 	})
 	//设置默认属性类型
@@ -183,14 +187,17 @@ func (t *Property) GetPropertyData() *PropertyData {
 	return data
 }
 
+// GetPropertyName 获取属性名称
 func (t *Property) GetPropertyName() string {
 	return t.ProName.Text
 }
 
+// GetPropertyValue 获取属性值
 func (t *Property) GetPropertyValue() string {
 	return t.ProValue.Text
 }
 
+// GetValid 获取属性值文本框检查状态。为空或格式不合法时返回false
 func (t *Property) GetValid() bool {
 	return t.ProValue.Validate() == nil
 }

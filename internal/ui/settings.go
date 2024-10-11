@@ -11,6 +11,7 @@ import (
 
 // showSettings 显示设置
 func showSettings(ap fyne.App, win fyne.Window, config *config.UserConfig) {
+	//读取配置文件
 	config.ReadConfigFile(ap)
 	//临时保存设置，点击取消则不保存，反之则保存到config和文件中
 	temp := struct {
@@ -83,7 +84,8 @@ func showSettings(ap fyne.App, win fyne.Window, config *config.UserConfig) {
 		movePhotoRadio.SetSelected("是")
 	case false:
 		movePhotoRadio.SetSelected("是")
-		//fyne的bug，不能在启动时将radio设置为disable，因此需要先enable，再disable
+		//fyne的bug，不能在启动时将radio设置为disable
+		//需要先enable，再disable，否则文本会一直为灰色
 		defer movePhotoRadio.SetSelected("否")
 	}
 
@@ -116,7 +118,7 @@ func showSettings(ap fyne.App, win fyne.Window, config *config.UserConfig) {
 		if !b {
 			return
 		}
-		//用户选择保存，则保存设置到config.json
+		//检查转存路径是否设置正确
 		if temp.MovePhoto && photoPath.GetEntryText() != "" && !photoPath.GetValid() {
 			ap.SendNotification(&fyne.Notification{
 				Title:   "错误",
@@ -124,7 +126,7 @@ func showSettings(ap fyne.App, win fyne.Window, config *config.UserConfig) {
 			})
 			temp.PhotoPath = ""
 		}
-
+		//保存设置到config.json
 		config.Key = temp.Key
 		config.NotePath = temp.NotePath
 		config.MovePhoto = temp.MovePhoto

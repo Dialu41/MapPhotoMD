@@ -26,6 +26,7 @@ func (lo *FolderOpenWithEntryLayout) MinSize(objects []fyne.CanvasObject) fyne.S
 	return minSize
 }
 
+// Layout 按钮在左，最小宽度；文本框在右，占用剩余宽度
 func (lo *FolderOpenWithEntryLayout) Layout(objects []fyne.CanvasObject, containerSize fyne.Size) {
 	if len(objects) != 2 {
 		return
@@ -41,6 +42,8 @@ func (lo *FolderOpenWithEntryLayout) Layout(objects []fyne.CanvasObject, contain
 	entry.Move(fyne.NewPos(0, 0))
 }
 
+// NewFolderOpenWithEntry 创建带文本框的文件夹打开按钮。
+// 传入参数：entryChanged 文本框输入改变时触发的回调函数；entryPlaceHolder 文本框占位符，输入为空时显示；win 父窗口
 func NewFolderOpenWithEntry(entryChanged func(s string), entryPlaceHolder string, win fyne.Window) *FolderOpenWithEntry {
 	t := &FolderOpenWithEntry{}
 	t.ExtendBaseWidget(t)
@@ -64,6 +67,7 @@ func NewFolderOpenWithEntry(entryChanged func(s string), entryPlaceHolder string
 
 	t.entry.OnChanged = entryChanged
 	t.entry.SetPlaceHolder(entryPlaceHolder)
+	//检查输入的路径是否存在
 	t.entry.Validator = func(s string) error {
 		_, err := os.Stat(s)
 		if err == nil {
@@ -81,24 +85,29 @@ func (t *FolderOpenWithEntry) CreateRenderer() fyne.WidgetRenderer {
 	return widget.NewSimpleRenderer(t.feContainer)
 }
 
+// SetEntryText 设置文本框内容
 func (t *FolderOpenWithEntry) SetEntryText(s string) {
 	t.entry.SetText(s)
 }
 
+// GetEntryText 获取文本框内容
 func (t *FolderOpenWithEntry) GetEntryText() string {
 	return t.entry.Text
 }
 
+// Enable 使文本框和按钮都可用
 func (t *FolderOpenWithEntry) Enable() {
 	t.button.Enable()
 	t.entry.Enable()
 }
 
+// Disable 使文本框和按钮都不可用
 func (t *FolderOpenWithEntry) Disable() {
 	t.button.Disable()
 	t.entry.Disable()
 }
 
+// GetValid 获取文本框的检查状态，文本框为空或指向路径不存在时返回false
 func (t *FolderOpenWithEntry) GetValid() bool {
 	return t.entry.Validate() == nil
 }
