@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -174,16 +175,27 @@ func (travelData *TravelData) decodeEXIF(cfg *config.UserConfig) {
 
 		resp, err := http.Get(gaodeApiSite)
 		if err != nil {
-
+			log.Fatalf("Failed to make request: %v", err)
 		}
 		defer resp.Body.Close()
 
-		body, _ := io.ReadAll(resp.Body)
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			log.Fatalf("Failed to read response body: %v", err)
+		}
 
 		var respMap map[string]interface{}
-		json.Unmarshal(body, &respMap)
+		if err := json.Unmarshal(body, &respMap); err != nil {
+			log.Fatalf("Failed to unmarshal JSON: %v", err)
+		}
 
-		l := strings.Split(respMap["locations"].(string), ",")
+		fmt.Printf("Response map: %+v\n", respMap)
+		locations, ok := respMap["locations"].(string)
+		if !ok {
+			log.Fatalf("locations is not a string or is nil: %v", respMap["locations"])
+		}
+
+		l := strings.Split(locations, ",")
 		tempLat, _ := strconv.ParseFloat(l[1], 64)
 		tempLong, _ := strconv.ParseFloat(l[0], 64)
 		pData.convertedLocation = append(pData.convertedLocation, location{
