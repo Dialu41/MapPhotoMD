@@ -1,3 +1,5 @@
+![软件截图](/img/banner.png)
+
 # 功能与特性
 
 MapPhotoMD是一个基于Go和Fyne的小工具。它可以读取照片的位置信息，并用这些信息生成符合Obsidian和Obsidian-Leaflet规范的旅行记录文档，配合Obsidian-Leaflet插件，可以无缝地将照片显示到在线地图上。
