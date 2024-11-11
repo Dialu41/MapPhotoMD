@@ -17,6 +17,7 @@ func showSettings(ap fyne.App, win fyne.Window, config *config.UserConfig) {
 	temp := struct {
 		Key            string
 		NotePath       string
+		SaveIOpath     bool
 		MovePhoto      bool
 		PhotoPath      string
 		DeletePhoto    bool
@@ -24,6 +25,7 @@ func showSettings(ap fyne.App, win fyne.Window, config *config.UserConfig) {
 	}{
 		Key:            config.Key,
 		NotePath:       config.NotePath,
+		SaveIOpath:     config.SaveIOPath,
 		MovePhoto:      config.MovePhoto,
 		PhotoPath:      config.PhotoPath,
 		DeletePhoto:    config.DeletePhoto,
@@ -44,6 +46,21 @@ func showSettings(ap fyne.App, win fyne.Window, config *config.UserConfig) {
 		temp.NotePath = s
 	}
 	notePathEntry.SetPlaceHolder("旅行记录在Ob库下的路径，例：生活/游记")
+
+	//是否保存导入导出路径
+	saveIOpathRadio := widget.NewRadioGroup([]string{"是", "否"}, func(s string) {
+		if s == "是" { //自动保存
+			temp.SaveIOpath = true
+		} else {
+			temp.SaveIOpath = false
+		}
+	})
+	switch config.SaveIOPath { //还原设置
+	case true:
+		saveIOpathRadio.SetSelected("是")
+	case false:
+		saveIOpathRadio.SetSelected("否")
+	}
 
 	//转存路径
 	photoPath := mywidget.NewFolderOpenWithEntry(func(s string) {
@@ -107,6 +124,7 @@ func showSettings(ap fyne.App, win fyne.Window, config *config.UserConfig) {
 	items := []*widget.FormItem{
 		widget.NewFormItem("高德Key", gdKeyEntry),
 		widget.NewFormItem("Ob库路径", notePathEntry),
+		widget.NewFormItem("是否保存导入导出设置", saveIOpathRadio),
 		widget.NewFormItem("是否转存照片", movePhotoRadio),
 		widget.NewFormItem("照片转存路径", photoPath),
 		widget.NewFormItem("是否删除原照片", deletePhotoRadio),
@@ -129,6 +147,7 @@ func showSettings(ap fyne.App, win fyne.Window, config *config.UserConfig) {
 		//保存设置到config.json
 		config.Key = temp.Key
 		config.NotePath = temp.NotePath
+		config.SaveIOPath = temp.SaveIOpath
 		config.MovePhoto = temp.MovePhoto
 		config.PhotoPath = temp.PhotoPath
 		config.DeletePhoto = temp.DeletePhoto

@@ -9,10 +9,17 @@ import (
 	"fyne.io/fyne/v2"
 )
 
+type IOPath struct {
+	InputPath  string `json:"input_path"`  //导入路径
+	OutputPath string `json:"output_path"` //导出路径
+}
+
 // UserConfig 用户配置数据
 type UserConfig struct {
 	Key            string                   `json:"key"`             //高德key
 	NotePath       string                   `json:"note_path"`       //ob库路径
+	SaveIOPath     bool                     `json:"save_io_path"`    //是否保存导入导出路径
+	IOPath         IOPath                   `json:"io_path"`         //导入导出路径
 	MovePhoto      bool                     `json:"move_photo"`      //是否转存照片
 	PhotoPath      string                   `json:"photo_path"`      //转存路径
 	DeletePhoto    bool                     `json:"delete_Photo"`    //是否删除原照片

@@ -189,7 +189,6 @@ func (travelData *TravelData) decodeEXIF(cfg *config.UserConfig) {
 			log.Fatalf("Failed to unmarshal JSON: %v", err)
 		}
 
-		fmt.Printf("Response map: %+v\n", respMap)
 		locations, ok := respMap["locations"].(string)
 		if !ok {
 			log.Fatalf("locations is not a string or is nil: %v", respMap["locations"])

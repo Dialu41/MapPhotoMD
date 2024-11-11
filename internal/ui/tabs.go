@@ -37,7 +37,7 @@ func MakeTabs(ap fyne.App, win fyne.Window, cfg *config.UserConfig) *container.A
 	travelData = service.NewTravelData()
 
 	travelTab = container.NewTabItem("旅行信息", makeTravelTabContent(win))
-	IOputTab = container.NewTabItem("导入导出设置", makeIOputTabContent(win))
+	IOputTab = container.NewTabItem("导入导出设置", makeIOputTabContent(win, cfg))
 	propertiesTab = container.NewTabItem("添加属性", makePropertiesTabContent(ap, win, cfg))
 
 	tabs = container.NewAppTabs(
@@ -117,16 +117,18 @@ func makeTravelTabContent(win fyne.Window) *fyne.Container {
 }
 
 // makeIOputTabContent 创建导入导出选项卡的内容
-func makeIOputTabContent(win fyne.Window) *fyne.Container {
+func makeIOputTabContent(win fyne.Window, cfg *config.UserConfig) *fyne.Container {
 	//导入路径文本框
 	inputPath = mywidget.NewFolderOpenWithEntry(func(s string) {
 		travelData.InputPath = s
 	}, "", win)
+	inputPath.SetEntryText(cfg.IOPath.InputPath)
 
 	//导出路径文本框
 	outputPath = mywidget.NewFolderOpenWithEntry(func(s string) {
 		travelData.OutputPath = s
 	}, "", win)
+	outputPath.SetEntryText(cfg.IOPath.OutputPath)
 
 	//点击跳转下一个选项卡
 	IOputNextButton := widget.NewButton("下一步", func() {
@@ -207,7 +209,15 @@ func makePropertiesTabContent(ap fyne.App, win fyne.Window, cfg *config.UserConf
 				}
 			}
 		}
-		//保存属性设置
+		//按照用户设置，选择是否保存导入导出路径
+		if cfg.SaveIOPath {
+			cfg.IOPath.InputPath = inputPath.GetEntryText()
+			cfg.IOPath.OutputPath = outputPath.GetEntryText()
+		} else {
+			cfg.IOPath.InputPath = ""
+			cfg.IOPath.OutputPath = ""
+		}
+		//保存用户配置
 		cfg.SaveConfigFile(ap)
 
 		invalidPhotos := travelData.GenerateMD(cfg)
