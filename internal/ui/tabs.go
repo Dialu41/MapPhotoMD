@@ -220,16 +220,54 @@ func makePropertiesTabContent(ap fyne.App, win fyne.Window, cfg *config.UserConf
 		//保存用户配置
 		cfg.SaveConfigFile(ap)
 
+		//活动指示器，显示后台处理状态
+		act := widget.NewActivity()
+
+		//自定义对话框的内容
+		text := widget.NewLabel("生成中...")
+		content := container.NewVBox(
+			container.NewHBox(
+				layout.NewSpacer(),
+				act,
+				layout.NewSpacer(),
+			),
+			container.NewHBox(
+				layout.NewSpacer(),
+				text,
+				layout.NewSpacer(),
+			),
+		)
+
+		//创建对话框
+		resultDialog := dialog.NewCustom("请等待...", "确定", content, win)
+		resultDialog.Resize(fyne.NewSize(200, 150))
+		resultDialog.Show()
+
+		//启动活动指示器
+		act.Start()
+
+		//开始处理照片
 		invalidPhotos := travelData.GenerateMD(cfg)
+
+		//停止活动指示器
+		act.Stop()
+
+		//显示处理结果
 		if len(invalidPhotos) != 0 {
 			//显示无法转换的照片
 			str := "无法转换的照片如下，请检查其是否存在经纬度信息：\n"
 			for _, p := range invalidPhotos {
 				str = str + p + "\n"
 			}
-			dialog.ShowInformation("提示", str, win)
+			text.Text = str
+			content.Refresh()
+
+			//重新调整对话框大小
+			minSize := content.MinSize()
+			resultDialog.Resize(minSize)
 		} else {
-			dialog.ShowInformation("提示", "生成成功！", win)
+			text.Text = "生成成功！"
+			content.Refresh()
 		}
 	})
 	proNextButton.Importance = widget.DangerImportance
