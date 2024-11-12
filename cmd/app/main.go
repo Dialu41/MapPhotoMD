@@ -16,7 +16,7 @@ func main() {
 
 	cfg.ReadConfigFile(ap) //读取配置文件
 
-	win.Resize(fyne.NewSize(700, 600))
+	win.Resize(fyne.NewSize(600, 450))
 	win.SetMaster()
 	win.SetMainMenu(ui.MakeMenu(ap, win, cfg)) //设置菜单栏
 	win.SetContent(ui.MakeTabs(ap, win, cfg))  //设置各选项卡的内容

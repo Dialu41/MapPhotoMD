@@ -55,6 +55,7 @@ func showSettings(ap fyne.App, win fyne.Window, config *config.UserConfig) {
 			temp.SaveIOpath = false
 		}
 	})
+	saveIOpathRadio.Horizontal = true
 	switch config.SaveIOPath { //还原设置
 	case true:
 		saveIOpathRadio.SetSelected("是")
@@ -76,6 +77,7 @@ func showSettings(ap fyne.App, win fyne.Window, config *config.UserConfig) {
 			temp.DeletePhoto = false
 		}
 	})
+	deletePhotoRadio.Horizontal = true
 	switch config.DeletePhoto { //还原设置
 	case true:
 		deletePhotoRadio.SetSelected("是")
@@ -96,6 +98,7 @@ func showSettings(ap fyne.App, win fyne.Window, config *config.UserConfig) {
 			temp.MovePhoto = false
 		}
 	})
+	movePhotoRadio.Horizontal = true
 	switch config.MovePhoto { //还原设置
 	case true:
 		movePhotoRadio.SetSelected("是")
@@ -114,6 +117,7 @@ func showSettings(ap fyne.App, win fyne.Window, config *config.UserConfig) {
 			temp.SaveProperties = false
 		}
 	})
+	savePropertiesRadio.Horizontal = true
 	switch config.SaveProperties { //还原设置
 	case true:
 		savePropertiesRadio.SetSelected("是")
