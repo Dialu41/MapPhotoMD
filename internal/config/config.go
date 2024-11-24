@@ -23,13 +23,20 @@ type UserConfig struct {
 	MovePhoto      bool                     `json:"move_photo"`      //是否转存照片
 	PhotoPath      string                   `json:"photo_path"`      //转存路径
 	DeletePhoto    bool                     `json:"delete_Photo"`    //是否删除原照片
+	PhotoQuality   int                      `json:"photo_quality"`   //照片质量
 	SaveProperties bool                     `json:"save_properties"` //是否保存YAML属性
 	Properties     []*mywidget.PropertyData `json:"properties"`      //旅行记录YAML属性
 }
 
 // NewUserConfig 创建用户配置结构体
 func NewUserConfig() *UserConfig {
-	return &UserConfig{}
+	return &UserConfig{
+		SaveIOPath:     true,
+		MovePhoto:      false,
+		DeletePhoto:    false,
+		PhotoQuality:   100,
+		SaveProperties: true,
+	}
 }
 
 // ReadConfigFile 用于读取配置文件，如成功则将数据保存到config，否则发送错误提醒

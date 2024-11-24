@@ -5,6 +5,8 @@ import (
 	"MapPhotoMD/mywidget"
 	"encoding/json"
 	"fmt"
+	"image"
+	"image/jpeg"
 	"io"
 	"io/fs"
 	"log"
@@ -252,8 +254,25 @@ func (t *TravelData) movePhoto(basePath string, cfg *config.UserConfig) {
 			source, _ := os.Open(filepath.Join(t.InputPath, fileName))
 			copy, _ := os.Create(filepath.Join(copyPath, fileName))
 
-			io.Copy(copy, source)
-			copy.Sync() //刷新缓冲区，确保成功保存
+			if cfg.PhotoQuality == 100 { //质量为100时不压缩
+				io.Copy(copy, source)
+				copy.Sync() //刷新缓冲区，确保成功保存
+			} else { //压缩图片
+				img, _, err := image.Decode(source)
+				if err != nil {
+					log.Fatalf("图片解码失败: %v", err)
+				}
+
+				//JPEG编码选项
+				options := jpeg.Options{
+					Quality: cfg.PhotoQuality,
+				}
+
+				err = jpeg.Encode(copy, img, &options)
+				if err != nil {
+					log.Fatalf("图片编码失败: %v", err)
+				}
+			}
 
 			copy.Close()
 			source.Close()

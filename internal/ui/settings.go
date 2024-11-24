@@ -5,6 +5,8 @@ import (
 	"MapPhotoMD/mywidget"
 
 	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/data/binding"
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/widget"
 )
@@ -21,6 +23,7 @@ func showSettings(ap fyne.App, win fyne.Window, config *config.UserConfig) {
 		MovePhoto      bool
 		PhotoPath      string
 		DeletePhoto    bool
+		PhotoQuality   int
 		SaveProperties bool
 	}{
 		Key:            config.Key,
@@ -29,6 +32,7 @@ func showSettings(ap fyne.App, win fyne.Window, config *config.UserConfig) {
 		MovePhoto:      config.MovePhoto,
 		PhotoPath:      config.PhotoPath,
 		DeletePhoto:    config.DeletePhoto,
+		PhotoQuality:   config.PhotoQuality,
 		SaveProperties: config.SaveProperties,
 	}
 
@@ -109,6 +113,17 @@ func showSettings(ap fyne.App, win fyne.Window, config *config.UserConfig) {
 		defer movePhotoRadio.SetSelected("否")
 	}
 
+	//照片质量，0~100
+	//数值越大照片质量越高，体积越大，100时不压缩、只复制
+	photoQData := binding.BindInt(&temp.PhotoQuality)
+	photoQLabel := widget.NewLabelWithData(binding.IntToString(photoQData))
+	photoQLabel.Resize(photoQLabel.MinSize())
+	photoQSlide := widget.NewSliderWithData(0, 100, binding.IntToFloat(photoQData))
+	photoQSlide.Step = 1
+	photoQualityContent := container.NewAdaptiveGrid(2,
+		photoQSlide, photoQLabel,
+	)
+
 	//是否保存属性
 	savePropertiesRadio := widget.NewRadioGroup([]string{"是", "否"}, func(s string) {
 		if s == "是" {
@@ -132,6 +147,7 @@ func showSettings(ap fyne.App, win fyne.Window, config *config.UserConfig) {
 		widget.NewFormItem("是否转存照片", movePhotoRadio),
 		widget.NewFormItem("照片转存路径", photoPath),
 		widget.NewFormItem("是否删除原照片", deletePhotoRadio),
+		widget.NewFormItem("照片质量", photoQualityContent),
 		widget.NewFormItem("是否保存属性", savePropertiesRadio),
 	}
 
@@ -156,6 +172,7 @@ func showSettings(ap fyne.App, win fyne.Window, config *config.UserConfig) {
 		config.PhotoPath = temp.PhotoPath
 		config.DeletePhoto = temp.DeletePhoto
 		config.SaveProperties = temp.SaveProperties
+		config.PhotoQuality = temp.PhotoQuality
 		config.SaveConfigFile(ap)
 
 	}, win)
